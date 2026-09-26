@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 export function ProfileCard({ profile, onAnalyze, onDelete }) {
   const navigate = useNavigate();
+  const postCount = parseInt(profile.post_count, 10) || 0;
 
   return (
     <div className="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-5 shadow-lg transition-all flex flex-col justify-between">
@@ -49,8 +50,8 @@ export function ProfileCard({ profile, onAnalyze, onDelete }) {
             <span className="text-slate-300 font-medium truncate block">{profile.preferred_tone || 'Friendly'}</span>
           </div>
           <div>
-            <span className="text-[11px] text-slate-400 block">Analyzed Posts</span>
-            <span className="text-slate-300 font-semibold">{profile.post_count || 0} posts</span>
+            <span className="text-[11px] text-slate-400 block">Timezone</span>
+            <span className="text-slate-300 font-medium truncate block">{profile.timezone || 'Asia/Kolkata'}</span>
           </div>
         </div>
       </div>
@@ -62,15 +63,15 @@ export function ProfileCard({ profile, onAnalyze, onDelete }) {
           variant="secondary"
           onClick={() => navigate(`/profiles/${profile.id}`)}
         >
-          View Data ({profile.post_count || 0})
+          View Profile
         </Button>
         <Button
           size="sm"
           variant="primary"
           icon={Sparkles}
-          onClick={() => onAnalyze ? onAnalyze(profile) : navigate(`/profiles/${profile.id}/analysis`)}
+          onClick={() => onAnalyze ? onAnalyze(profile) : navigate('/feedback')}
         >
-          Analyze Profile
+          Get AI Feedback
         </Button>
       </div>
     </div>

@@ -22,7 +22,7 @@ export function Profiles() {
 
   const handleAnalyze = async (profile) => {
     selectProfile(profile);
-    navigate(`/profiles/${profile.id}/analysis`);
+    navigate(`/feedback?profile_id=${profile.id}`);
   };
 
   const confirmDelete = async () => {
@@ -46,7 +46,7 @@ export function Profiles() {
         <div>
           <h1 className="text-xl font-bold text-slate-100">Social Profiles</h1>
           <p className="text-xs text-slate-400 mt-1">
-            Manage your connected creator accounts and historical post ingestion
+            Manage your creator profiles, brand positioning, and AI strategy
           </p>
         </div>
         <Button

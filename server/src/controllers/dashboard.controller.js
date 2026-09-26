@@ -1,4 +1,6 @@
 const { query } = require('../config/database');
+const { getAllStatuses, getAdapter } = require('../services/social');
+const { getLatestFeedback } = require('../services/feedback.service');
 
 async function getDashboardSummary(req, res, next) {
   try {
@@ -24,38 +26,35 @@ async function getDashboardSummary(req, res, next) {
       if (match) activeProfile = match;
     }
 
-    // 2. Get latest analysis for active profile
-    const analysisRes = await query(`
-      SELECT * FROM profile_analyses
-      WHERE profile_id = $1 AND user_id = $2
-      ORDER BY created_at DESC
-      LIMIT 1;
-    `, [activeProfile.id, req.user.id]);
+    // 2. Multi-platform connection statuses (Instagram, YouTube, TikTok, LinkedIn, Facebook)
+    let platformStatuses = [];
+    try {
+      platformStatuses = await getAllStatuses(req.user.id);
+    } catch (e) {
+      console.warn('Failed to load social platform statuses:', e.message);
+    }
 
-    const latestAnalysis = analysisRes.rows[0] ? analysisRes.rows[0].analysis_json : null;
-
-    // Heuristic Health Indicators (AI-derived planning indicators)
-    const profileHealth = latestAnalysis ? {
-      consistency: latestAnalysis.consistency?.indicator || 72,
-      variety: latestAnalysis.content_variety?.indicator || 54,
-      brand_clarity: 81,
-      caption_quality: latestAnalysis.caption_quality?.indicator || 68,
-      cta_usage: latestAnalysis.cta_usage?.indicator || 61,
-      format_consistency: 75,
-      is_analyzed: true
-    } : {
-      consistency: 0,
-      variety: 0,
-      brand_clarity: 0,
-      caption_quality: 0,
-      cta_usage: 0,
-      format_consistency: 0,
-      is_analyzed: false
+    // 3. Current active platform status
+    const currentPlatform = (activeProfile.platform || 'Instagram').toLowerCase();
+    const activePlatformStatus = platformStatuses.find(p => p.platform === currentPlatform) || {
+      platform: currentPlatform,
+      status: 'NOT_CONFIGURED',
+      connected: false,
+      message: `${activeProfile.platform} data integration isn't configured yet.`
     };
 
-    // 3. Top recommendations
+    // 4. Latest Feedback & Evidence-Based Score
+    let feedback = null;
+    try {
+      feedback = await getLatestFeedback(activeProfile.id, req.user.id);
+    } catch (e) {
+      console.warn('Could not fetch feedback for dashboard:', e.message);
+    }
+
+    // 5. Top improvement areas from recommendations or feedback
     const recsRes = await query(`
-      SELECT * FROM analysis_recommendations
+      SELECT id, title, current_state, description, evidence, action, priority, suggested_frequency, status
+      FROM analysis_recommendations
       WHERE profile_id = $1 AND user_id = $2
       ORDER BY
         CASE priority
@@ -64,128 +63,59 @@ async function getDashboardSummary(req, res, next) {
           ELSE 3
         END,
         created_at DESC
+      LIMIT 4;
+    `, [activeProfile.id, req.user.id]);
+
+    // 6. Recent Creative Ideas
+    const ideasRes = await query(`
+      SELECT id, title, format, concept, hook, cta, why_it_fits, gap_addressed, effort as estimated_effort, created_at
+      FROM content_ideas
+      WHERE profile_id = $1 AND user_id = $2
+      ORDER BY created_at DESC
+      LIMIT 4;
+    `, [activeProfile.id, req.user.id]);
+
+    // 7. Upcoming 7-Day Calendar items
+    const upcomingCalendarRes = await query(`
+      SELECT id, scheduled_date, suggested_time, time_reason, platform, content_type, topic, hook, caption, cta, status
+      FROM posts
+      WHERE profile_id = $1 AND user_id = $2 AND status IN ('DRAFT', 'READY', 'SCHEDULED')
+      ORDER BY scheduled_date ASC, suggested_time ASC
       LIMIT 5;
     `, [activeProfile.id, req.user.id]);
 
-    // 4. Upcoming Posts
-    const upcomingPostsRes = await query(`
-      SELECT * FROM posts
-      WHERE profile_id = $1 AND user_id = $2 AND status IN ('DRAFT', 'SCHEDULED')
-      ORDER BY scheduled_date ASC, suggested_time ASC
-      LIMIT 6;
-    `, [activeProfile.id, req.user.id]);
-
-    // 5. Post Status distribution
-    const statusCountsRes = await query(`
-      SELECT status, COUNT(*) as count
-      FROM posts
-      WHERE profile_id = $1 AND user_id = $2
-      GROUP BY status;
-    `, [activeProfile.id, req.user.id]);
-
-    const statusCounts = {
-      DRAFT: 0,
-      SCHEDULED: 0,
-      PUBLISHED: 0,
-      ARCHIVED: 0
-    };
-    statusCountsRes.rows.forEach(r => {
-      statusCounts[r.status] = parseInt(r.count, 10);
-    });
-
-    // 6. Active Campaigns
+    // 8. Active Campaigns
     const campaignsRes = await query(`
-      SELECT * FROM campaigns
+      SELECT id, name, description, goal, start_date, end_date, status, created_at
+      FROM campaigns
       WHERE profile_id = $1 AND user_id = $2 AND status = 'ACTIVE'
       ORDER BY end_date ASC
       LIMIT 3;
     `, [activeProfile.id, req.user.id]);
 
-    // 7. Recent profile posts & deterministic metrics
-    const postsRes = await query(
-      'SELECT * FROM profile_posts WHERE profile_id = $1 AND user_id = $2 ORDER BY post_date DESC',
-      [activeProfile.id, req.user.id]
-    );
-    const profilePosts = postsRes.rows;
-    const totalPosts = profilePosts.length;
-
-    // Calculate Content Mix
-    const formatCounts = {};
-    let totalLikes = 0;
-    let totalComments = 0;
-    let totalEngVal = 0;
-    let hasDemoData = false;
-
-    profilePosts.forEach(p => {
-      const fmt = p.content_type || 'Image';
-      formatCounts[fmt] = (formatCounts[fmt] || 0) + 1;
-      totalLikes += (p.likes || 0);
-      totalComments += (p.comments || 0);
-      const eng = parseFloat(p.engagement_rate) || ((p.likes || 0) + (p.comments || 0)) / Math.max(1, (p.views || (p.likes + p.comments) * 10)) * 100;
-      totalEngVal += eng;
-      if (p.is_demo) hasDemoData = true;
-    });
-
-    const contentMix = Object.entries(formatCounts).map(([content_type, count]) => ({
-      content_type,
-      count,
-      percentage: totalPosts > 0 ? Math.round((count / totalPosts) * 100) : 0
-    }));
-
-    const avgEngagement = totalPosts > 0 ? `${(totalEngVal / totalPosts).toFixed(1)}%` : '0.0%';
-    const avgLikes = totalPosts > 0 ? Math.round(totalLikes / totalPosts) : 0;
-    const avgComments = totalPosts > 0 ? Math.round(totalComments / totalPosts) : 0;
-
-    // Posting Frequency calculation
-    let postingFrequency = '3.5 posts/week';
-    if (totalPosts >= 2) {
-      const dates = profilePosts
-        .map(p => new Date(p.post_date).getTime())
-        .filter(d => !isNaN(d))
-        .sort((a, b) => a - b);
-      if (dates.length >= 2) {
-        const daysDiff = Math.max(1, (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24));
-        const weeks = Math.max(0.5, daysDiff / 7);
-        const pPerWeek = (totalPosts / weeks).toFixed(1);
-        postingFrequency = `${pPerWeek} posts/week`;
-      }
-    } else if (totalPosts === 1) {
-      postingFrequency = '1 post/week';
-    } else {
-      postingFrequency = '0 posts/week';
-    }
-
-    const formatTypesCount = Object.keys(formatCounts).length;
-    const varietyScore = totalPosts > 0 ? `${Math.min(95, Math.max(40, formatTypesCount * 22))}%` : '0%';
-    const consistencyScore = totalPosts >= 8 ? '82%' : (totalPosts >= 4 ? '68%' : (totalPosts > 0 ? '50%' : '0%'));
-
-    const deterministicMetrics = {
-      posts_analyzed: totalPosts,
-      content_mix: contentMix,
-      average_engagement: avgEngagement,
-      average_likes: avgLikes,
-      average_comments: avgComments,
-      posting_frequency: postingFrequency,
-      content_consistency: consistencyScore,
-      content_variety: varietyScore,
-      has_demo_data: hasDemoData
-    };
-
+    // Clean, high-level overview response without post-count dependencies
     res.json({
       has_profile: true,
       active_profile: activeProfile,
-      profiles: profilesRes.rows,
-      analyzed_posts_count: totalPosts,
-      deterministic_metrics: deterministicMetrics,
-      profile_health: profileHealth,
-      whats_working: latestAnalysis?.strengths || [],
-      what_could_improve: latestAnalysis?.weaknesses || [],
-      opportunities: latestAnalysis?.opportunities || [],
-      recommendations: recsRes.rows,
-      upcoming_posts: upcomingPostsRes.rows,
-      post_stats: statusCounts,
-      active_campaigns: campaignsRes.rows,
-      last_analyzed_at: analysisRes.rows[0]?.created_at || null
+      connected_platforms: platformStatuses,
+      active_platform_status: activePlatformStatus,
+      profile_score: {
+        score: feedback?.overall_score ?? 75,
+        confidence: feedback?.confidence ?? 'LOW',
+        label: 'AI-generated profile planning score'
+      },
+      feedback_summary: feedback?.summary ?? `Profile @${activeProfile.username} configured in ${activeProfile.niche}.`,
+      top_improvement_areas: recsRes.rows.length > 0 ? recsRes.rows : (feedback?.improvement_areas?.slice(0, 4) || []),
+      recent_creative_ideas: ideasRes.rows,
+      upcoming_calendar_items: upcomingCalendarRes.rows,
+      campaigns_overview: campaignsRes.rows,
+      data_status: {
+        connectionStatus: activePlatformStatus.status,
+        isConnected: activePlatformStatus.connected,
+        message: activePlatformStatus.connected
+          ? `Connected to ${activeProfile.platform}.`
+          : `${activeProfile.platform} access is not currently available. Strategy is grounded in your profile information.`
+      }
     });
   } catch (err) {
     next(err);

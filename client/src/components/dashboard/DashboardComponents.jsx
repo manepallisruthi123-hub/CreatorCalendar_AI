@@ -5,13 +5,17 @@ import { useNavigate } from 'react-router-dom';
 
 export function ProfileHealthCard({ health }) {
   const indicators = [
-    { label: 'Content Consistency', value: health?.consistency || 72, color: 'text-indigo-400', bar: 'bg-indigo-500' },
-    { label: 'Content Variety', value: health?.variety || 54, color: 'text-amber-400', bar: 'bg-amber-500' },
-    { label: 'Brand Clarity', value: health?.brand_clarity || 81, color: 'text-emerald-400', bar: 'bg-emerald-500' },
-    { label: 'Caption Quality', value: health?.caption_quality || 68, color: 'text-sky-400', bar: 'bg-sky-500' },
-    { label: 'CTA Usage', value: health?.cta_usage || 61, color: 'text-rose-400', bar: 'bg-rose-500' },
-    { label: 'Format Consistency', value: health?.format_consistency || 75, color: 'text-purple-400', bar: 'bg-purple-500' },
+    { label: 'Content Consistency', value: health?.consistency, color: 'text-indigo-400', bar: 'bg-indigo-500' },
+    { label: 'Content Variety', value: health?.variety, color: 'text-amber-400', bar: 'bg-amber-500' },
+    { label: 'Brand Clarity', value: health?.brand_clarity, color: 'text-emerald-400', bar: 'bg-emerald-500' },
+    { label: 'Caption Quality', value: health?.caption_quality, color: 'text-sky-400', bar: 'bg-sky-500' },
+    { label: 'CTA Usage', value: health?.cta_usage, color: 'text-rose-400', bar: 'bg-rose-500' },
+    { label: 'Format Consistency', value: health?.format_consistency, color: 'text-purple-400', bar: 'bg-purple-500' },
   ];
+
+  const modeBadge = health?.analysis_mode === 'STARTER_STRATEGY'
+    ? 'Starter Strategy'
+    : (health?.analysis_mode === 'EARLY_CONTENT' ? 'Limited Historical Data' : 'Planning Heuristics');
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg relative overflow-hidden">
@@ -19,30 +23,35 @@ export function ProfileHealthCard({ health }) {
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-slate-100">Profile Health</h3>
-            <Badge variant="brand" size="sm">Planning Heuristics</Badge>
+            <Badge variant="brand" size="sm">{modeBadge}</Badge>
           </div>
           <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
             <Info className="w-3 h-3 text-slate-400 shrink-0" />
-            AI-derived planning indicators. Not official Instagram metrics.
+            AI-derived planning indicators. Grounded strictly in available post corpus.
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {indicators.map((ind) => (
-          <div key={ind.label} className="bg-slate-800/40 border border-slate-800 p-3.5 rounded-xl">
-            <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="text-slate-400 font-medium truncate">{ind.label}</span>
-              <span className={`font-bold ${ind.color}`}>{ind.value}%</span>
+        {indicators.map((ind) => {
+          const hasValue = ind.value !== null && ind.value !== undefined;
+          return (
+            <div key={ind.label} className="bg-slate-800/40 border border-slate-800 p-3.5 rounded-xl">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-slate-400 font-medium truncate">{ind.label}</span>
+                <span className={`font-bold ${hasValue ? ind.color : 'text-slate-500'}`}>
+                  {hasValue ? `${ind.value}%` : '—'}
+                </span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${hasValue ? ind.bar : 'bg-transparent'}`}
+                  style={{ width: `${hasValue ? ind.value : 0}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-700 ${ind.bar}`}
-                style={{ width: `${ind.value}%` }}
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

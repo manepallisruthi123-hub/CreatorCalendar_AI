@@ -15,14 +15,16 @@ const loginSchema = z.object({
 
 // Social profile schemas
 const socialProfileSchema = z.object({
+  creator_name: z.string().optional().default(''),
   platform: z.string().default('Instagram'),
+  preferred_platforms: z.union([z.array(z.string()), z.string()]).optional().default(['Instagram']),
   profile_url: z.string().min(1, 'Profile URL is required'),
   username: z.string().min(1, 'Username is required'),
   niche: z.string().optional().default('General'),
   target_audience: z.string().optional().default('General Audience'),
   content_goal: z.string().optional().default('Growth & Engagement'),
   preferred_tone: z.string().optional().default('Authentic & Professional'),
-  timezone: z.string().optional().default('UTC')
+  timezone: z.string().optional().default('Asia/Kolkata')
 });
 
 const updateSocialProfileSchema = socialProfileSchema.partial();
@@ -80,7 +82,14 @@ const postingWindowItemSchema = z.object({
 });
 
 // AI Profile Analysis schema (matching Section 20)
+const nullableIndicatorSchema = z.union([
+  z.number(),
+  z.null()
+]).optional();
+
 const profileAnalysisSchema = z.object({
+  analysis_mode: z.enum(['STARTER_STRATEGY', 'EARLY_CONTENT', 'PROFILE_ANALYSIS']).or(z.string()).optional().default('PROFILE_ANALYSIS'),
+  data_confidence: z.enum(['NONE', 'LIMITED', 'HIGH', 'LOW', 'MEDIUM']).or(z.string()).optional().default('HIGH'),
   profile_summary: z.object({
     niche: z.string(),
     audience: z.string(),
@@ -95,29 +104,41 @@ const profileAnalysisSchema = z.object({
     percentage: z.coerce.number()
   })).optional().default([]),
   consistency: z.object({
-    indicator: z.coerce.number(),
+    indicator: nullableIndicatorSchema,
     explanation: z.string().optional().default('')
   }),
   content_variety: z.object({
-    indicator: z.coerce.number(),
+    indicator: nullableIndicatorSchema,
     explanation: z.string().optional().default('')
   }),
   caption_quality: z.object({
-    indicator: z.coerce.number(),
+    indicator: nullableIndicatorSchema,
     explanation: z.string().optional().default('')
   }),
   cta_usage: z.object({
-    indicator: z.coerce.number(),
+    indicator: nullableIndicatorSchema,
     explanation: z.string().optional().default('')
   }),
   strengths: z.array(strengthItemSchema).optional().default([]),
   weaknesses: z.array(weaknessItemSchema).optional().default([]),
   opportunities: z.array(opportunityItemSchema).optional().default([]),
-  posting_windows: z.array(postingWindowItemSchema).optional().default([
-    { day: 'Tuesday', start: '18:00', end: '20:00', confidence: 'MEDIUM', reason: 'High evening engagement window' },
-    { day: 'Thursday', start: '12:00', end: '14:00', confidence: 'MEDIUM', reason: 'Midday browse session' },
-    { day: 'Sunday', start: '19:00', end: '21:00', confidence: 'HIGH', reason: 'Weekly planning and educational reading' }
-  ])
+  content_gaps: z.array(z.union([
+    z.string(),
+    z.object({
+      gap: z.string().optional().default(''),
+      recommendation: z.string().optional().default('')
+    })
+  ])).optional().default([]),
+  posting_windows: z.array(postingWindowItemSchema).optional().default([]),
+  recommended_next_posts: z.array(z.object({
+    title: z.string(),
+    format: z.string().optional().default('Post'),
+    concept: z.string().optional().default(''),
+    hook: z.string().optional().default(''),
+    caption: z.string().optional().default(''),
+    cta: z.string().optional().default(''),
+    hashtags: z.array(z.string()).optional().default([])
+  })).optional().default([])
 });
 
 // Recommendation schema
@@ -181,12 +202,12 @@ const postUpdateSchema = z.object({
   suggested_time: z.string().optional(),
   content_type: z.string().optional(),
   scheduled_date: z.string().optional(),
-  status: z.enum(['DRAFT', 'SCHEDULED', 'PUBLISHED', 'ARCHIVED']).optional()
+  status: z.enum(['DRAFT', 'READY', 'SCHEDULED', 'PUBLISHED', 'ARCHIVED']).optional()
 });
 
 // Post status update schema
 const postStatusSchema = z.object({
-  status: z.enum(['DRAFT', 'SCHEDULED', 'PUBLISHED', 'ARCHIVED'])
+  status: z.enum(['DRAFT', 'READY', 'SCHEDULED', 'PUBLISHED', 'ARCHIVED'])
 });
 
 // Post regeneration request schema
@@ -198,6 +219,46 @@ const postRegenerateRequestSchema = z.object({
   instruction: z.string().optional()
 });
 
+// Feedback schemas (Section: FEEDBACK JSON)
+const feedbackDimensionSchema = z.object({
+  name: z.string(),
+  score: z.number().nullable().optional(),
+  status: z.enum(['EVALUATED', 'INSUFFICIENT_DATA']).optional().default('EVALUATED'),
+  explanation: z.string().optional().default('')
+});
+
+const feedbackStrengthSchema = z.object({
+  title: z.string(),
+  description: z.string().optional().default(''),
+  evidence: z.string().optional().default('')
+});
+
+const feedbackImprovementAreaSchema = z.object({
+  title: z.string(),
+  current_state: z.string().optional().default(''),
+  evidence: z.string().optional().default(''),
+  recommendation: z.string(),
+  priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).or(z.string()).default('MEDIUM'),
+  suggested_frequency: z.string().optional().default('2-3x per week')
+});
+
+const feedbackContentGapSchema = z.object({
+  gap: z.string(),
+  why_it_matters: z.string().optional().default(''),
+  recommended_action: z.string().optional().default('')
+});
+
+const feedbackResponseSchema = z.object({
+  overall_score: z.coerce.number().min(0).max(100),
+  confidence: z.enum(['LOW', 'MEDIUM', 'HIGH']).or(z.string()).default('LOW'),
+  summary: z.string(),
+  dimensions: z.array(feedbackDimensionSchema).optional().default([]),
+  strengths: z.array(feedbackStrengthSchema).default([]),
+  improvement_areas: z.array(feedbackImprovementAreaSchema).default([]),
+  content_gaps: z.array(feedbackContentGapSchema).default([]),
+  next_steps: z.array(z.string()).default([])
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
@@ -205,6 +266,11 @@ module.exports = {
   updateSocialProfileSchema,
   profilePostSchema,
   profileAnalysisSchema,
+  feedbackDimensionSchema,
+  feedbackStrengthSchema,
+  feedbackImprovementAreaSchema,
+  feedbackContentGapSchema,
+  feedbackResponseSchema,
   recommendationUpdateSchema,
   creativeIdeaItemSchema,
   creativeIdeasResponseSchema,

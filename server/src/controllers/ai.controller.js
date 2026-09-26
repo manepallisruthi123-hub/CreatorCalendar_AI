@@ -23,12 +23,12 @@ async function handleAnalyzeProfile(req, res, next) {
 
 async function handleGenerateIdeas(req, res, next) {
   try {
-    const { profile_id } = req.body;
+    const { profile_id, platform } = req.body;
     if (!profile_id) {
       return res.status(400).json({ error: 'Bad Request', message: 'profile_id is required' });
     }
 
-    const ideas = await generateContentIdeas(profile_id, req.user.id);
+    const ideas = await generateContentIdeas(profile_id, req.user.id, platform);
     res.json({
       message: 'Content ideas generated',
       ideas: ideas
@@ -40,12 +40,12 @@ async function handleGenerateIdeas(req, res, next) {
 
 async function handleGenerateCalendar(req, res, next) {
   try {
-    const { profile_id } = req.body;
+    const { profile_id, platform } = req.body;
     if (!profile_id) {
       return res.status(400).json({ error: 'Bad Request', message: 'profile_id is required' });
     }
 
-    const planData = await generateCalendarPlan(profile_id, req.user.id);
+    const planData = await generateCalendarPlan(profile_id, req.user.id, platform);
     res.status(201).json({
       message: 'Calendar plan generated',
       plan: planData.plan,

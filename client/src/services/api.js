@@ -77,10 +77,16 @@ export const api = {
     delete: (id) => request(`/profile-posts/${id}`, { method: 'DELETE' }),
   },
 
-  // Analysis & Recommendations
+  // Feedback & Profile Intelligence
+  feedback: {
+    get: (profileId) => request(`/feedback${profileId ? `/${profileId}` : ''}`),
+    generate: (profileId) => request(`/feedback${profileId ? `/${profileId}` : ''}`, { method: 'POST', body: { profile_id: profileId } }),
+  },
+
+  // Analysis & Recommendations (Backward-compatible)
   analysis: {
-    trigger: (profileId) => request(`/profiles/${profileId}/analyze`, { method: 'POST' }),
-    getLatest: (profileId) => request(`/profiles/${profileId}/analysis`),
+    trigger: (profileId) => request(`/feedback/${profileId}`, { method: 'POST' }),
+    getLatest: (profileId) => request(`/feedback/${profileId}`),
     getRecommendations: (profileId) => request(`/profiles/${profileId}/recommendations`),
     updateRecommendation: (id, status) => request(`/recommendations/${id}`, { method: 'PATCH', body: { status } }),
   },
@@ -88,16 +94,24 @@ export const api = {
   // Ideas
   ideas: {
     list: (profileId) => request(`/profiles/${profileId}/ideas`),
-    generate: (profileId) => request(`/profiles/${profileId}/ideas`, { method: 'POST' }),
+    generate: (profileId, platform) => request(`/profiles/${profileId}/ideas`, { method: 'POST', body: { platform } }),
     delete: (id) => request(`/ideas/${id}`, { method: 'DELETE' }),
   },
 
   // Content Plans & Calendar
   calendar: {
     getPlans: (profileId) => request(`/content-plans${profileId ? `?profile_id=${profileId}` : ''}`),
-    generatePlan: (profileId) => request('/content-plans/generate', { method: 'POST', body: { profile_id: profileId } }),
+    generatePlan: (profileId, platform) => request('/content-plans/generate', { method: 'POST', body: { profile_id: profileId, platform } }),
     getPlan: (id) => request(`/content-plans/${id}`),
     deletePlan: (id) => request(`/content-plans/${id}`, { method: 'DELETE' }),
+  },
+
+  // Multi-Platform Social Accounts
+  social: {
+    getAccounts: () => request('/social/accounts'),
+    connect: (platform, data) => request(`/social/connect/${platform}`, { method: 'POST', body: data }),
+    disconnect: (platform) => request(`/social/disconnect/${platform}`, { method: 'POST' }),
+    getContent: (platform) => request(`/social/content${platform ? `/${platform}` : ''}`),
   },
 
   // Posts
@@ -122,8 +136,8 @@ export const api = {
   // AI Direct Endpoints
   ai: {
     analyzeProfile: (profileId) => request('/ai/analyze-profile', { method: 'POST', body: { profile_id: profileId } }),
-    generateIdeas: (profileId) => request('/ai/generate-ideas', { method: 'POST', body: { profile_id: profileId } }),
-    generateCalendar: (profileId) => request('/ai/generate-calendar', { method: 'POST', body: { profile_id: profileId } }),
+    generateIdeas: (profileId, platform) => request('/ai/generate-ideas', { method: 'POST', body: { profile_id: profileId, platform } }),
+    generateCalendar: (profileId, platform) => request('/ai/generate-calendar', { method: 'POST', body: { profile_id: profileId, platform } }),
     regeneratePost: (options) => request('/ai/regenerate-post', { method: 'POST', body: options }),
     applyRegeneratedPost: (postId, updatedPost) => request('/ai/apply-regenerated-post', { method: 'POST', body: { post_id: postId, updated_post: updatedPost } }),
   },
@@ -142,3 +156,5 @@ export const api = {
     getSummary: (profileId) => request(`/dashboard/summary${profileId ? `?profile_id=${profileId}` : ''}`),
   }
 };
+
+export default api;

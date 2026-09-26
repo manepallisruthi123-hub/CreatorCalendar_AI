@@ -8,15 +8,39 @@ let isPgPool = false;
 async function getDatabase() {
   if (client) return client;
 
-  const databaseUrl = process.env.DATABASE_URL;
+  let databaseUrl = process.env.DATABASE_URL;
 
   if (databaseUrl && databaseUrl.trim().length > 0 && !databaseUrl.includes('USER:PASSWORD')) {
     try {
+      // Defensively clean brackets if present in password userinfo
+      const atParts = databaseUrl.split('@');
+      if (atParts.length === 2) {
+        const beforeAt = atParts[0];
+        const afterAt = atParts[1];
+        const colonParts = beforeAt.split(':');
+        if (colonParts.length >= 3) {
+          const rawPass = colonParts.slice(2).join(':');
+          if (rawPass.startsWith('[') && rawPass.endsWith(']')) {
+            const cleanPass = rawPass.slice(1, -1);
+            databaseUrl = `${colonParts[0]}:${colonParts[1]}:${encodeURIComponent(cleanPass)}@${afterAt}`;
+          }
+        }
+      }
+
+      const isRemote = databaseUrl.includes('supabase') ||
+                       databaseUrl.includes('amazonaws.com') ||
+                       databaseUrl.includes('pooler') ||
+                       databaseUrl.includes('sslmode') ||
+                       process.env.NODE_ENV === 'production';
+
       const { Pool } = require('pg');
       const pool = new Pool({
         connectionString: databaseUrl,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+        ssl: isRemote ? { rejectUnauthorized: false } : false,
+        connectionTimeoutMillis: 10000,
+        idleTimeoutMillis: 30000
       });
+
       // Test connection
       await pool.query('SELECT 1');
       console.log('✅ Connected to external PostgreSQL via DATABASE_URL');
@@ -28,7 +52,7 @@ async function getDatabase() {
     }
   }
 
-  // Use embedded PostgreSQL (PGlite) with disk persistence
+  // Use embedded PostgreSQL (PGlite) with disk persistence as fallback
   const { PGlite } = require('@electric-sql/pglite');
   const dataDir = path.join(__dirname, '../../data/pgdata');
   if (!fs.existsSync(dataDir)) {
@@ -88,8 +112,25 @@ async function initDb() {
   }
 }
 
+async function checkDatabaseHealth() {
+  try {
+    const db = await getDatabase();
+    await db.query('SELECT 1');
+    return {
+      database: 'connected',
+      engine: isPgPool ? 'PostgreSQL' : 'PGlite'
+    };
+  } catch (err) {
+    return {
+      database: 'disconnected',
+      error: err.message
+    };
+  }
+}
+
 module.exports = {
   getDatabase,
   query,
-  initDb
+  initDb,
+  checkDatabaseHealth
 };

@@ -30,6 +30,7 @@ export function Calendar() {
   const [latestPlan, setLatestPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState('All');
 
   // Modals state
   const [editingPost, setEditingPost] = useState(null);
@@ -67,8 +68,9 @@ export function Calendar() {
     if (!activeProfile?.id) return;
     setGenerating(true);
     try {
-      const res = await api.calendar.generatePlan(activeProfile.id);
-      toast.success('7-Day Content Plan & Calendar generated!');
+      const platParam = selectedPlatform !== 'All' ? selectedPlatform : undefined;
+      const res = await api.calendar.generatePlan(activeProfile.id, platParam);
+      toast.success(`7-Day Content Plan & Calendar generated${platParam ? ` for ${platParam}` : ''}!`);
       await loadCalendarData(activeProfile.id);
     } catch (err) {
       toast.error(err.message || 'Failed to generate calendar');
@@ -97,9 +99,14 @@ export function Calendar() {
     }
   };
 
+  // Filter posts by selected platform
+  const filteredPosts = selectedPlatform === 'All'
+    ? posts
+    : posts.filter(p => (p.platform || '').toLowerCase() === selectedPlatform.toLowerCase());
+
   // Group posts by scheduled_date
   const postsByDate = {};
-  posts.forEach(p => {
+  filteredPosts.forEach(p => {
     const d = p.scheduled_date ? new Date(p.scheduled_date).toISOString().split('T')[0] : 'undated';
     if (!postsByDate[d]) postsByDate[d] = [];
     postsByDate[d].push(p);
@@ -158,13 +165,33 @@ export function Calendar() {
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-slate-100">7-Day Content Calendar</h1>
             <Badge variant="brand" size="sm">@{activeProfile.username}</Badge>
+            <Badge variant="outline" size="sm">
+              <Clock className="w-3 h-3 mr-1 text-slate-400" />
+              {activeProfile.timezone || 'Asia/Kolkata'}
+            </Badge>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Cohesive weekly publishing schedule balanced across high-retention formats
+            Personalized 7-day schedule with recommended posting windows for {activeProfile.timezone || 'Asia/Kolkata'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 font-medium">Platform:</span>
+            <select
+              value={selectedPlatform}
+              onChange={(e) => setSelectedPlatform(e.target.value)}
+              className="bg-slate-800 text-slate-200 border border-slate-700 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-brand-500"
+            >
+              <option value="All">All Platforms</option>
+              <option value="Instagram">Instagram</option>
+              <option value="YouTube">YouTube</option>
+              <option value="TikTok">TikTok</option>
+              <option value="LinkedIn">LinkedIn</option>
+              <option value="Facebook">Facebook</option>
+            </select>
+          </div>
+
           <Button
             variant="primary"
             size="sm"
@@ -172,7 +199,7 @@ export function Calendar() {
             onClick={handleGenerateCalendar}
             loading={generating}
           >
-            {posts.length > 0 ? 'Generate New 7-Day Plan' : 'Generate 7-Day Plan'}
+            {posts.length > 0 ? `Generate 7-Day Plan (${selectedPlatform})` : `Generate 7-Day Plan (${selectedPlatform})`}
           </Button>
         </div>
       </div>

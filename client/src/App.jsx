@@ -13,14 +13,12 @@ import { Dashboard } from './pages/Dashboard';
 import { Profiles } from './pages/Profiles';
 import { ProfileNew } from './pages/ProfileNew';
 import { ProfileDetails } from './pages/ProfileDetails';
-import { ProfileAnalysis } from './pages/ProfileAnalysis';
+import { Feedback } from './pages/Feedback';
 import { Ideas } from './pages/Ideas';
 import { Calendar } from './pages/Calendar';
-import { Posts } from './pages/Posts';
-import { PostImport } from './pages/PostImport';
-import { PostDetails } from './pages/PostDetails';
 import { Campaigns } from './pages/Campaigns';
 import { Settings } from './pages/Settings';
+import { SocialAccounts } from './pages/SocialAccounts';
 
 export function App() {
   return (
@@ -45,15 +43,21 @@ export function App() {
               <Route path="/profiles" element={<Profiles />} />
               <Route path="/profiles/new" element={<ProfileNew />} />
               <Route path="/profiles/:id" element={<ProfileDetails />} />
-              <Route path="/profiles/:id/analysis" element={<ProfileAnalysis />} />
-              <Route path="/analyze" element={<ProfileAnalysis />} />
+              <Route path="/profiles/:id/feedback" element={<Feedback />} />
+              <Route path="/feedback" element={<Feedback />} />
+              <Route path="/creative-ideas" element={<Ideas />} />
               <Route path="/ideas" element={<Ideas />} />
               <Route path="/calendar" element={<Calendar />} />
-              <Route path="/posts" element={<Posts />} />
-              <Route path="/posts/import" element={<PostImport />} />
-              <Route path="/posts/:id" element={<PostDetails />} />
               <Route path="/campaigns" element={<Campaigns />} />
+              <Route path="/accounts" element={<SocialAccounts />} />
               <Route path="/settings" element={<Settings />} />
+
+              {/* Seamless Deprecation Redirects for Old Routes */}
+              <Route path="/analyze" element={<Navigate to="/feedback" replace />} />
+              <Route path="/analysis" element={<Navigate to="/feedback" replace />} />
+              <Route path="/profiles/:id/analysis" element={<Navigate to="/feedback" replace />} />
+              <Route path="/posts" element={<Navigate to="/calendar" replace />} />
+              <Route path="/posts/*" element={<Navigate to="/calendar" replace />} />
             </Route>
 
             {/* Fallback redirect */}

@@ -2,15 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import {
-  ProfileHealthCard,
-  StatCard,
-  StrengthCard,
-  WeaknessCard,
-  OpportunityCard,
-  RecommendationCard,
-  UpcomingPosts
-} from '../components/dashboard';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 import { Spinner } from '../components/common/Spinner';
@@ -23,10 +14,16 @@ import {
   Calendar,
   Plus,
   RefreshCw,
-  FileText,
   Target,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  ShieldCheck,
+  Clock,
+  Layers,
+  Award,
+  ChevronRight,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { InstagramIcon } from '../components/common/InstagramIcon';
 
@@ -38,7 +35,6 @@ export function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
     fetchDashboard();
@@ -54,30 +50,6 @@ export function Dashboard() {
       setError(err.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleQuickAnalyze = async () => {
-    if (!activeProfile?.id) return;
-    setAnalyzing(true);
-    try {
-      await api.analysis.trigger(activeProfile.id);
-      toast.success('Profile analysis updated!');
-      await fetchDashboard();
-    } catch (err) {
-      toast.error(err.message || 'Failed to run analysis');
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
-  const handleRecommendationStatus = async (recId, newStatus) => {
-    try {
-      await api.analysis.updateRecommendation(recId, newStatus);
-      toast.success(`Recommendation marked as ${newStatus}`);
-      fetchDashboard();
-    } catch (err) {
-      toast.error(err.message || 'Failed to update recommendation');
     }
   };
 
@@ -99,44 +71,52 @@ export function Dashboard() {
       <EmptyState
         icon={InstagramIcon}
         title="No Social Profile Connected"
-        description="Connect your Instagram profile or import sample post data to generate your personalized content strategy and calendar."
-        actionLabel="Add Your First Profile"
+        description="Create your creator profile to unlock evidence-based AI feedback, creative ideas, and a 7-day content calendar."
+        actionLabel="Create Profile & Get Feedback"
         actionIcon={Plus}
         onAction={() => navigate('/profiles/new')}
       />
     );
   }
 
-  const hasAnalysis = data?.profile_health?.is_analyzed;
+  const profile = data.active_profile;
+  const scoreData = data.profile_score || { score: 75, confidence: 'LOW' };
+  const platforms = data.connected_platforms || [];
+  const topRecommendations = data.top_improvement_areas || [];
+  const upcomingPosts = data.upcoming_calendar_items || [];
+  const recentIdeas = data.recent_creative_ideas || [];
+  const campaigns = data.campaigns_overview || [];
 
   return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-brand-900/40 via-slate-900 to-indigo-950/40 border border-brand-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
+    <div className="space-y-8 pb-12 max-w-6xl mx-auto">
+      {/* Header Welcome Banner */}
+      <div className="bg-gradient-to-r from-brand-950/60 via-slate-900 to-indigo-950/40 border border-brand-500/20 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="space-y-1.5 max-w-xl">
+          <div className="flex items-center gap-2.5">
             <h1 className="text-xl sm:text-2xl font-black text-slate-100">
-              Welcome back, @{data.active_profile.username}
+              Welcome, @{profile.username}
             </h1>
-            <Badge variant="brand" size="sm">{data.active_profile.niche || 'Creator'}</Badge>
+            <Badge variant="brand" size="sm">{profile.niche || 'Creator'}</Badge>
           </div>
-          <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            Goal: <strong className="text-slate-300">{data.active_profile.content_goal || 'Growth'}</strong> •
-            Tone: <strong className="text-slate-300">{data.active_profile.preferred_tone || 'Engaging'}</strong> •
-            Analyzed Posts: <strong className="text-brand-300">{data.analyzed_posts_count} posts</strong>
+          <p className="text-xs text-slate-300">
+            Goal: <strong className="text-white">{profile.content_goal || 'Growth'}</strong> •
+            Tone: <strong className="text-white">{profile.preferred_tone || 'Authentic'}</strong> •
+            Timezone: <strong className="text-brand-300">{profile.timezone || 'Asia/Kolkata'}</strong>
+          </p>
+          <p className="text-[11px] text-slate-400">
+            {data.data_status?.message || 'Strategy generated from your profile positioning.'}
           </p>
         </div>
 
-        {/* Quick Strategy Action Buttons matching spec */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        {/* Primary Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <Button
             size="sm"
             variant="secondary"
-            icon={RefreshCw}
-            onClick={handleQuickAnalyze}
-            loading={analyzing}
+            icon={Sparkles}
+            onClick={() => navigate('/feedback')}
           >
-            {hasAnalysis ? 'Re-Analyze Profile' : 'Analyze Profile'}
+            View Feedback
           </Button>
 
           <Button
@@ -145,7 +125,7 @@ export function Dashboard() {
             icon={Lightbulb}
             onClick={() => navigate('/ideas')}
           >
-            Generate Creative Ideas
+            Creative Ideas
           </Button>
 
           <Button
@@ -154,233 +134,297 @@ export function Dashboard() {
             icon={Calendar}
             onClick={() => navigate('/calendar')}
           >
-            Generate 7-Day Calendar
+            7-Day Calendar
           </Button>
         </div>
       </div>
 
-      {/* Post Ingestion Intelligence Card */}
-      {data.analyzed_posts_count > 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center font-bold text-xs">
-                <FileText className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-bold text-slate-100">
-                    {data.analyzed_posts_count} Posts Analyzed
-                  </h2>
-                  {data.deterministic_metrics?.has_demo_data ? (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-semibold">
-                      Demo Sample Data
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[10px] font-semibold">
-                      Real Creator Posts
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-400">
-                  Deterministic metrics calculated directly from your stored post corpus
-                </p>
-              </div>
+      {/* Overview Top Row: Profile Score & Connected Platforms */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Profile Score Card */}
+        <div className="md:col-span-1 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between space-y-4">
+          <div>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <span className="text-[11px] uppercase font-bold tracking-wider text-slate-400">
+                Profile Planning Score
+              </span>
+              <span className={`text-[10px] uppercase font-extrabold px-2 py-0.5 rounded border ${
+                scoreData.confidence === 'HIGH'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  : (scoreData.confidence === 'MEDIUM'
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                      : 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300')
+              }`}>
+                {scoreData.confidence} Confidence
+              </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => navigate('/posts/import')}
-              >
-                Import More Posts
-              </Button>
-              <Button
-                size="sm"
-                variant="primary"
-                icon={Sparkles}
-                onClick={handleQuickAnalyze}
-                loading={analyzing}
-              >
-                Analyze Profile
-              </Button>
+            <div className="flex items-baseline gap-2 my-3">
+              <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brand-300 to-pink-300">
+                {scoreData.score}
+              </span>
+              <span className="text-base font-semibold text-slate-500">/ 100</span>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {data.feedback_summary || 'Your profile has a defined direction ready for execution.'}
+            </p>
+          </div>
+
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={ArrowRight}
+            className="w-full justify-between"
+            onClick={() => navigate('/feedback')}
+          >
+            <span>Detailed Breakdown</span>
+          </Button>
+        </div>
+
+        {/* Connected Platforms Overview */}
+        <div className="md:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-brand-400" />
+                Multi-Platform Connection Status
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Official API integrations only. Unconfigured channels remain safely transparent.
+              </p>
             </div>
           </div>
 
-          {/* 5 Required Metrics Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 pt-1">
-            {/* 1. Content Mix */}
-            <div className="bg-slate-950/60 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between">
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
-                  Content Mix
-                </span>
-                <div className="space-y-1.5 mt-2">
-                  {data.deterministic_metrics?.content_mix?.slice(0, 3).map((mix) => (
-                    <div key={mix.content_type} className="flex items-center justify-between text-xs">
-                      <span className="text-slate-300 font-medium truncate max-w-[85px]">{mix.content_type}</span>
-                      <span className="text-brand-300 font-bold">{mix.percentage}%</span>
-                    </div>
-                  ))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-1">
+            {['instagram', 'youtube', 'tiktok', 'linkedin', 'facebook'].map((platKey) => {
+              const item = platforms.find(p => p.platform === platKey) || {
+                platform: platKey,
+                displayName: platKey.charAt(0).toUpperCase() + platKey.slice(1),
+                connected: false,
+                status: 'NOT_CONFIGURED'
+              };
+              const isConn = item.connected;
+
+              return (
+                <div
+                  key={platKey}
+                  className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex flex-col justify-between space-y-2 text-center"
+                >
+                  <span className="text-xs font-bold text-slate-200 capitalize">{platKey}</span>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                    isConn
+                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                      : 'bg-slate-800 text-slate-400 border border-slate-700/60'
+                  }`}>
+                    {isConn ? 'Connected' : 'Not Connected'}
+                  </span>
                 </div>
-              </div>
-              <div className="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden flex">
-                {data.deterministic_metrics?.content_mix?.map((mix, idx) => (
-                  <div
-                    key={mix.content_type}
-                    style={{ width: `${mix.percentage}%` }}
-                    className={`h-full ${
-                      idx === 0 ? 'bg-brand-500' : idx === 1 ? 'bg-indigo-400' : idx === 2 ? 'bg-pink-400' : 'bg-amber-400'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
+              );
+            })}
+          </div>
 
-            {/* 2. Average Engagement */}
-            <div className="bg-slate-950/60 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between">
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
-                  Average Engagement
-                </span>
-                <p className="text-2xl font-black text-emerald-400 mt-2">
-                  {data.deterministic_metrics?.average_engagement || '0.0%'}
-                </p>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-2">
-                Avg ~{data.deterministic_metrics?.average_likes || 0} likes • {data.deterministic_metrics?.average_comments || 0} comments
-              </p>
-            </div>
-
-            {/* 3. Posting Frequency */}
-            <div className="bg-slate-950/60 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between">
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
-                  Posting Frequency
-                </span>
-                <p className="text-2xl font-black text-sky-400 mt-2">
-                  {data.deterministic_metrics?.posting_frequency || '3.5 posts/wk'}
-                </p>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-2">
-                Active publishing cadence
-              </p>
-            </div>
-
-            {/* 4. Content Consistency */}
-            <div className="bg-slate-950/60 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between">
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
-                  Content Consistency
-                </span>
-                <p className="text-2xl font-black text-indigo-400 mt-2">
-                  {data.deterministic_metrics?.content_consistency || '78%'}
-                </p>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-2">
-                Regularity of publishing intervals
-              </p>
-            </div>
-
-            {/* 5. Content Variety */}
-            <div className="bg-slate-950/60 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between">
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
-                  Content Variety
-                </span>
-                <p className="text-2xl font-black text-amber-400 mt-2">
-                  {data.deterministic_metrics?.content_variety || '85%'}
-                </p>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-2">
-                Reels, Carousels & Stories spread
-              </p>
-            </div>
+          <div className="pt-2 flex items-center gap-2 text-[11px] text-slate-400">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>Profile intelligence works immediately with or without active social API connections.</span>
           </div>
         </div>
-      ) : (
-        <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-100">No Post History Ingested Yet</h3>
-              <p className="text-xs text-slate-400">
-                Load 10 sample posts or import past posts via manual entry/CSV to unlock profile analytics.
-              </p>
-            </div>
-          </div>
+      </div>
+
+      {/* Top Improvement Recommendations */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => navigate('/posts/import')}
+            <Target className="w-5 h-5 text-amber-400" />
+            <h2 className="text-base font-bold text-slate-100">Top Improvement Priorities</h2>
+          </div>
+          <button
+            onClick={() => navigate('/feedback')}
+            className="text-xs text-brand-400 hover:text-brand-300 font-medium flex items-center gap-1"
+          >
+            All Feedback <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {topRecommendations.slice(0, 3).map((rec, idx) => (
+            <div
+              key={idx}
+              className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-md flex flex-col justify-between space-y-3"
             >
-              Import Content Options
-            </Button>
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-xs font-bold text-slate-100 truncate">{rec.title}</span>
+                  <span className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded border ${
+                    rec.priority === 'HIGH'
+                      ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                      : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                  }`}>
+                    {rec.priority || 'MEDIUM'}
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-300 leading-relaxed line-clamp-3">
+                  {rec.action || rec.recommendation || rec.description}
+                </p>
+              </div>
+
+              {rec.suggested_frequency && (
+                <div className="pt-2 border-t border-slate-800 text-[10px] text-slate-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-brand-400" />
+                  <span>Cadence: {rec.suggested_frequency}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Upcoming 7-Day Calendar Items */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-indigo-400" />
+            <h2 className="text-base font-bold text-slate-100">Upcoming 7-Day Calendar</h2>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={ArrowRight}
+            onClick={() => navigate('/calendar')}
+          >
+            Manage Calendar
+          </Button>
+        </div>
+
+        {upcomingPosts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {upcomingPosts.slice(0, 4).map((post) => (
+              <div
+                key={post.id}
+                className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-md flex flex-col justify-between space-y-3 hover:border-slate-700 transition-colors"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="font-semibold text-slate-400">{post.scheduled_date || 'Upcoming'}</span>
+                    <Badge variant="brand" size="sm">{post.content_type || 'Post'}</Badge>
+                  </div>
+
+                  <h4 className="text-xs font-bold text-slate-100 line-clamp-2">{post.topic}</h4>
+                  <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 italic">"{post.hook}"</p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
+                  <span className="text-slate-400 font-mono">
+                    {post.suggested_time ? `${post.suggested_time} (${profile.timezone || 'Asia/Kolkata'})` : 'Window'}
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-300 font-semibold border border-brand-500/20">
+                    {post.status || 'DRAFT'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 rounded-2xl bg-slate-900/60 border border-dashed border-slate-800 text-center space-y-2">
+            <p className="text-xs text-slate-400">No content scheduled for this week yet.</p>
             <Button
               size="sm"
               variant="primary"
-              icon={Sparkles}
-              onClick={() => navigate('/posts/import')}
+              icon={Calendar}
+              onClick={() => navigate('/calendar')}
             >
-              Load Demo Posts
+              Generate 7-Day Calendar
             </Button>
           </div>
+        )}
+      </div>
+
+      {/* Recent Creative Ideas & Campaigns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Creative Ideas Snippet */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-amber-400" />
+              <h3 className="text-sm font-bold text-slate-100">Recent Creative Ideas</h3>
+            </div>
+            <button
+              onClick={() => navigate('/ideas')}
+              className="text-xs text-brand-400 hover:text-brand-300 font-medium"
+            >
+              View All
+            </button>
+          </div>
+
+          {recentIdeas.length > 0 ? (
+            <div className="space-y-2.5">
+              {recentIdeas.slice(0, 3).map((idea) => (
+                <div
+                  key={idea.id}
+                  className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-start justify-between gap-3"
+                >
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold text-slate-200 block truncate max-w-[280px]">
+                      {idea.title}
+                    </span>
+                    <p className="text-[11px] text-slate-400 truncate max-w-[280px]">
+                      {idea.concept}
+                    </p>
+                  </div>
+                  <Badge variant="indigo" size="sm">{idea.format}</Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 space-y-2">
+              <p className="text-xs text-slate-400">Generate creative ideas from your profile feedback.</p>
+              <Button size="sm" variant="outline" onClick={() => navigate('/ideas')}>
+                Generate Ideas
+              </Button>
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Heuristic Health Card */}
-      <ProfileHealthCard health={data.profile_health} />
+        {/* Campaign Overview */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-sm font-bold text-slate-100">Campaign Planning</h3>
+            </div>
+            <button
+              onClick={() => navigate('/campaigns')}
+              className="text-xs text-brand-400 hover:text-brand-300 font-medium"
+            >
+              View Campaigns
+            </button>
+          </div>
 
-      {/* Stats Counter Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Analyzed Posts"
-          value={data.analyzed_posts_count}
-          subtitle="Recent post corpus"
-          icon={FileText}
-          color="brand"
-        />
-        <StatCard
-          title="Scheduled Posts"
-          value={data.post_stats?.SCHEDULED || 0}
-          subtitle="Ready to publish"
-          icon={Calendar}
-          color="emerald"
-        />
-        <StatCard
-          title="Draft Ideas"
-          value={data.post_stats?.DRAFT || 0}
-          subtitle="In calendar pipeline"
-          icon={Lightbulb}
-          color="amber"
-        />
-        <StatCard
-          title="Active Campaigns"
-          value={data.active_campaigns?.length || 0}
-          subtitle="Growth initiatives"
-          icon={Target}
-          color="sky"
-        />
-      </div>
-
-      {/* 3 Pillars Grid: What's Working, What Could Improve, Opportunities */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <StrengthCard strengths={data.whats_working} />
-        <WeaknessCard weaknesses={data.what_could_improve} />
-        <OpportunityCard opportunities={data.opportunities} />
-      </div>
-
-      {/* Bottom Grid: Top Recommendations & Upcoming Posts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <RecommendationCard
-          recommendations={data.recommendations}
-          onStatusChange={handleRecommendationStatus}
-        />
-        <UpcomingPosts posts={data.upcoming_posts} />
+          {campaigns.length > 0 ? (
+            <div className="space-y-2.5">
+              {campaigns.slice(0, 3).map((camp) => (
+                <div
+                  key={camp.id}
+                  className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-xs font-bold text-slate-200 block">{camp.name}</span>
+                    <span className="text-[10px] text-slate-400">{camp.goal || 'Brand Growth'}</span>
+                  </div>
+                  <Badge variant="brand" size="sm">{camp.status}</Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 space-y-2">
+              <p className="text-xs text-slate-400">Organize your weekly calendar items into targeted campaigns.</p>
+              <Button size="sm" variant="outline" onClick={() => navigate('/campaigns')}>
+                Create Campaign
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

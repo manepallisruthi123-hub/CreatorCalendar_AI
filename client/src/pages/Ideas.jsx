@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { Button } from '../components/common/Button';
@@ -9,10 +9,11 @@ import { EmptyState } from '../components/common/EmptyState';
 import { ErrorState } from '../components/common/ErrorState';
 import { IdeaCard } from '../components/ideas/IdeaComponents';
 import { useToast } from '../components/common/Toast';
-import { Sparkles, Lightbulb, Plus, Filter, Calendar } from 'lucide-react';
+import { Sparkles, Lightbulb, Plus, Filter, Calendar, ArrowLeft } from 'lucide-react';
 
 export function Ideas() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { activeProfile, profiles } = useAuth();
   const toast = useToast();
 
@@ -20,6 +21,9 @@ export function Ideas() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [formatFilter, setFormatFilter] = useState('ALL');
+  const [selectedPlatform, setSelectedPlatform] = useState('All');
+
+  const fromFeedback = searchParams.get('source') === 'feedback';
 
   useEffect(() => {
     if (activeProfile?.id) {
@@ -48,8 +52,9 @@ export function Ideas() {
     }
     setGenerating(true);
     try {
-      const res = await api.ai.generateIdeas(activeProfile.id);
-      toast.success('Generated fresh creative ideas!');
+      const platParam = selectedPlatform !== 'All' ? selectedPlatform : undefined;
+      const res = await api.ai.generateIdeas(activeProfile.id, platParam);
+      toast.success(`Generated fresh creative ideas${platParam ? ` for ${platParam}` : ''}!`);
       await loadIdeas(activeProfile.id);
     } catch (err) {
       toast.error(err.message || 'Failed to generate ideas');
@@ -121,11 +126,27 @@ export function Ideas() {
             <Badge variant="brand" size="sm">@{activeProfile.username}</Badge>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Personalized concepts designed to bridge format gaps identified in your profile analysis
+            Personalized concepts designed to bridge format gaps identified in your profile feedback
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 font-medium">Platform:</span>
+            <select
+              value={selectedPlatform}
+              onChange={(e) => setSelectedPlatform(e.target.value)}
+              className="bg-slate-800 text-slate-200 border border-slate-700 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:border-brand-500"
+            >
+              <option value="All">All Platforms</option>
+              <option value="Instagram">Instagram</option>
+              <option value="YouTube">YouTube</option>
+              <option value="TikTok">TikTok</option>
+              <option value="LinkedIn">LinkedIn</option>
+              <option value="Facebook">Facebook</option>
+            </select>
+          </div>
+
           <Button
             variant="primary"
             size="sm"
@@ -133,10 +154,24 @@ export function Ideas() {
             onClick={handleGenerateIdeas}
             loading={generating}
           >
-            Generate New Ideas
+            Generate Ideas ({selectedPlatform})
           </Button>
         </div>
       </div>
+
+      {fromFeedback && (
+        <div className="p-4 rounded-2xl bg-brand-950/40 border border-brand-500/30 flex items-center justify-between gap-4 text-xs shadow-lg">
+          <div className="flex items-center gap-2.5 text-slate-200">
+            <Sparkles className="w-4 h-4 text-brand-400 shrink-0" />
+            <span>
+              Grounded in your latest <strong>Profile Feedback</strong>. These creative concepts directly solve your identified content gaps.
+            </span>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => navigate('/feedback')} className="text-slate-400 hover:text-white shrink-0">
+            View Feedback
+          </Button>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       {ideas.length > 0 && (

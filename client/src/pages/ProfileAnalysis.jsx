@@ -84,11 +84,15 @@ export function ProfileAnalysis() {
     try {
       const res = await api.analysis.trigger(profileId);
       setAnalysis(res.analysis);
-      toast.success('Analysis generated successfully!');
+      toast.success(
+        res.analysis?.analysis_mode === 'STARTER_STRATEGY'
+          ? 'Starter Content Strategy generated!'
+          : 'Content analysis completed successfully!'
+      );
       const rRes = await api.analysis.getRecommendations(profileId);
       setRecommendations(rRes.recommendations || []);
     } catch (err) {
-      toast.error(err.message || 'Analysis failed. Make sure recent posts are added.');
+      toast.error(err.message || "AI analysis couldn't be completed. Please try again.");
     } finally {
       setAnalyzing(false);
     }
@@ -131,6 +135,15 @@ export function ProfileAnalysis() {
     );
   }
 
+  const postCount = parseInt(profile.post_count, 10) || 0;
+  const initialButtonLabel = postCount === 0
+    ? 'Create Starter Strategy'
+    : (postCount === 1 ? 'Analyze 1 Post' : `Analyze ${postCount} Posts`);
+
+  const reanalyzeButtonLabel = postCount === 0
+    ? 'Re-Generate Strategy'
+    : (postCount === 1 ? 'Re-Analyze 1 Post' : `Re-Analyze ${postCount} Posts`);
+
   if (!analysis) {
     return (
       <div className="space-y-6">
@@ -138,9 +151,13 @@ export function ProfileAnalysis() {
           <div className="w-14 h-14 rounded-2xl bg-brand-500/10 text-brand-400 border border-brand-500/20 flex items-center justify-center mx-auto">
             <Sparkles className="w-7 h-7" />
           </div>
-          <h2 className="text-xl font-bold text-slate-100">Ready to Analyze @{profile.username}?</h2>
+          <h2 className="text-xl font-bold text-slate-100">
+            {postCount === 0 ? 'Create Starter Strategy for @' : 'Ready to Analyze @'}{profile.username}
+          </h2>
           <p className="text-xs text-slate-400 leading-relaxed">
-            CreatorCalendar AI will examine your recent post formats, caption hooks, consistency, and calls-to-action to synthesize your content strategy.
+            {postCount === 0
+              ? 'Starting fresh with no historical posts. CreatorCalendar AI will synthesize a foundational content strategy, core pillars, and starter schedule based on your profile niche and audience.'
+              : `CreatorCalendar AI will examine your ${postCount} stored post(s), caption hooks, consistency, and calls-to-action to synthesize your content strategy.`}
           </p>
           <div className="pt-2">
             <Button
@@ -150,7 +167,7 @@ export function ProfileAnalysis() {
               onClick={handleRunAnalysis}
               loading={analyzing}
             >
-              Run AI Profile Analysis
+              {initialButtonLabel}
             </Button>
           </div>
         </div>
@@ -158,14 +175,29 @@ export function ProfileAnalysis() {
     );
   }
 
+  const isStarter = analysis.analysis_mode === 'STARTER_STRATEGY';
+  const isEarly = analysis.analysis_mode === 'EARLY_CONTENT';
+
+  const reportTitle = isStarter
+    ? `Starter Content Strategy`
+    : (isEarly ? `Early Content Analysis` : `Profile Content Analysis`);
+
+  const modeBadgeText = isStarter
+    ? 'Starter Content Strategy (0 Posts)'
+    : (isEarly ? 'Early Content Analysis (Limited Data)' : 'Profile Content Analysis');
+
   return (
     <div className="space-y-6">
       {/* Overview Header */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-slate-100">@{profile.username} Intelligence Report</h1>
-            <Badge variant="brand" size="sm">Analysis Complete</Badge>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-black text-slate-100">
+              @{profile.username} — {reportTitle}
+            </h1>
+            <Badge variant={isStarter ? 'brand' : (isEarly ? 'warning' : 'success')} size="sm">
+              {modeBadgeText}
+            </Badge>
           </div>
           <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
             {analysis.profile_summary?.positioning || 'AI-powered content intelligence summary.'}
@@ -181,16 +213,16 @@ export function ProfileAnalysis() {
             onClick={handleRunAnalysis}
             loading={analyzing}
           >
-            Re-Analyze
+            {reanalyzeButtonLabel}
           </Button>
 
           <Button
             size="sm"
             variant="outline"
-            icon={Lightbulb}
+            icon={Sparkles}
             onClick={() => navigate('/ideas')}
           >
-            Generate Ideas
+            Generate My Next Posts
           </Button>
 
           <Button
@@ -204,45 +236,63 @@ export function ProfileAnalysis() {
         </div>
       </div>
 
-      {/* Profile Overview & Health Indicators */}
+      {/* Notice for 1-2 Posts */}
+      {isEarly && (
+        <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 text-xs text-indigo-300 flex items-start gap-3">
+          <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+          <div>
+            <strong className="font-semibold text-slate-200">Limited historical data:</strong> Analysis is grounded strictly in your {postCount} published post(s). Consistency and long-term variety patterns cannot be evaluated until more content is published.
+          </div>
+        </div>
+      )}
+
+      {/* Profile Overview & Health Indicators (Nullable, No Fake Numbers) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
           <span className="text-[11px] text-slate-400 block font-medium">Content Consistency</span>
           <span className="text-2xl font-bold text-indigo-400 mt-1 block">
-            {analysis.consistency?.indicator || 72}%
+            {analysis.consistency?.indicator !== null && analysis.consistency?.indicator !== undefined
+              ? `${analysis.consistency.indicator}%`
+              : '—'}
           </span>
-          <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">
-            {analysis.consistency?.explanation}
+          <p className="text-[10px] text-slate-400 mt-1 line-clamp-3">
+            {analysis.consistency?.explanation || 'No historical posting rhythm recorded.'}
           </p>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
           <span className="text-[11px] text-slate-400 block font-medium">Content Variety</span>
           <span className="text-2xl font-bold text-amber-400 mt-1 block">
-            {analysis.content_variety?.indicator || 54}%
+            {analysis.content_variety?.indicator !== null && analysis.content_variety?.indicator !== undefined
+              ? `${analysis.content_variety.indicator}%`
+              : '—'}
           </span>
-          <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">
-            {analysis.content_variety?.explanation}
+          <p className="text-[10px] text-slate-400 mt-1 line-clamp-3">
+            {analysis.content_variety?.explanation || 'Format diversity across posts.'}
           </p>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
           <span className="text-[11px] text-slate-400 block font-medium">Caption Quality</span>
           <span className="text-2xl font-bold text-sky-400 mt-1 block">
-            {analysis.caption_quality?.indicator || 68}%
+            {analysis.caption_quality?.indicator !== null && analysis.caption_quality?.indicator !== undefined
+              ? `${analysis.caption_quality.indicator}%`
+              : '—'}
           </span>
-          <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">
-            {analysis.caption_quality?.explanation}
+          <p className="text-[10px] text-slate-400 mt-1 line-clamp-3">
+            {analysis.caption_quality?.explanation || 'Evaluation of opening hook and copy structure.'}
           </p>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
           <span className="text-[11px] text-slate-400 block font-medium">CTA Usage</span>
           <span className="text-2xl font-bold text-rose-400 mt-1 block">
-            {analysis.cta_usage?.indicator || 61}%
+            {analysis.cta_usage?.indicator !== null && analysis.cta_usage?.indicator !== undefined
+              ? `${analysis.cta_usage.indicator}%`
+              : '—'}
           </span>
-          <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">
-            {analysis.cta_usage?.explanation}
+          <p className="text-[10px] text-slate-400 mt-1 line-clamp-3">
+            {analysis.cta_usage?.explanation || 'Presence of audience interaction prompts.'}
           </p>
         </div>
       </div>
@@ -262,8 +312,12 @@ export function ProfileAnalysis() {
               <CheckCircle2 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-100">Proven Strengths</h3>
-              <p className="text-[11px] text-slate-400">What your current content executes well</p>
+              <h3 className="text-sm font-bold text-slate-100">
+                {isStarter ? 'Foundational Strengths' : 'Proven Strengths'}
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                {isStarter ? 'Core strategic assets from your profile' : 'What your published content executes well'}
+              </p>
             </div>
           </div>
 
@@ -289,8 +343,12 @@ export function ProfileAnalysis() {
               <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-100">Content Bottlenecks & Weaknesses</h3>
-              <p className="text-[11px] text-slate-400">Identified gaps holding back discovery</p>
+              <h3 className="text-sm font-bold text-slate-100">
+                {isStarter ? 'Baseline Realities' : 'Content Bottlenecks & Gaps'}
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                {isStarter ? 'Factors to account for as you publish post #1' : 'Identified gaps holding back discovery'}
+              </p>
             </div>
           </div>
 
@@ -343,6 +401,59 @@ export function ProfileAnalysis() {
         </div>
       </div>
 
+      {/* Recommended Next Posts (Part 8 & 9) */}
+      {analysis.recommended_next_posts && analysis.recommended_next_posts.length > 0 && (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-100">Recommended Next Posts</h3>
+                <p className="text-[11px] text-slate-400">Personalized content concepts tailored to your profile goals</p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              icon={Lightbulb}
+              onClick={() => navigate('/ideas')}
+            >
+              Generate My Next Posts
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {analysis.recommended_next_posts.slice(0, 6).map((post, idx) => (
+              <div key={idx} className="p-4 rounded-xl bg-slate-800/40 border border-slate-800 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="brand" size="sm">{post.format || 'Post'}</Badge>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-100">{post.title}</h4>
+                  {post.hook && (
+                    <p className="text-[11px] text-brand-300 mt-1.5 italic">
+                      "{post.hook}"
+                    </p>
+                  )}
+                  {post.concept && (
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      {post.concept}
+                    </p>
+                  )}
+                </div>
+                {post.cta && (
+                  <div className="mt-3 pt-2 border-t border-slate-800/80 text-[10px] text-slate-400">
+                    <strong className="text-slate-300">CTA:</strong> {post.cta}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Actionable Recommendations with Status */}
       {recommendations.length > 0 && (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg">
@@ -388,5 +499,3 @@ export function ProfileAnalysis() {
     </div>
   );
 }
-
-export default ProfileAnalysis;

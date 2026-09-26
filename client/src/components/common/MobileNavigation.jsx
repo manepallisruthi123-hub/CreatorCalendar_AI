@@ -1,15 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, LineChart, Lightbulb, Calendar, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Sparkles, Lightbulb, Calendar, Target } from 'lucide-react';
 
 export function MobileNavigation() {
   const items = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Profiles', path: '/profiles', icon: Users },
-    { name: 'Analysis', path: '/analyze', icon: LineChart },
+    { name: 'Feedback', path: '/feedback', icon: Sparkles },
     { name: 'Ideas', path: '/ideas', icon: Lightbulb },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
-    { name: 'Posts', path: '/posts', icon: FileText },
+    { name: 'Campaigns', path: '/campaigns', icon: Target },
   ];
 
   return (

@@ -11,7 +11,8 @@ import {
   Settings,
   Sparkles,
   LogOut,
-  Upload
+  Upload,
+  Share2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -21,11 +22,9 @@ export function Sidebar({ className = '' }) {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Profiles', path: '/profiles', icon: Users },
-    { name: 'Import Content', path: '/posts/import', icon: Upload },
-    { name: 'Analysis', path: '/analyze', icon: LineChart },
+    { name: 'Feedback', path: '/feedback', icon: Sparkles },
     { name: 'Creative Ideas', path: '/ideas', icon: Lightbulb },
     { name: 'Calendar', path: '/calendar', icon: Calendar },
-    { name: 'Posts', path: '/posts', icon: FileText },
     { name: 'Campaigns', path: '/campaigns', icon: Target },
     { name: 'Settings', path: '/settings', icon: Settings },
   ];
