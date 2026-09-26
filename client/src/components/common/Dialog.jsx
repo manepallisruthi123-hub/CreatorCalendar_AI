@@ -1,2 +1,3 @@
-export { Modal as Dialog } from './Modal';
-export { default } from './Modal';
+import { Modal } from './Modal';
+export { Modal as Dialog };
+export default Modal;

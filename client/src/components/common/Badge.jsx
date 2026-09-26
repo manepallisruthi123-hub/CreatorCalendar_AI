@@ -1,2 +1,3 @@
-export { Badge } from './Inputs';
+import { Badge } from './Inputs';
+export { Badge };
 export default Badge;
