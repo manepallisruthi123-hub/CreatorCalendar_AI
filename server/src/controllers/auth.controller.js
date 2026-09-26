@@ -150,7 +150,10 @@ async function googleAuthInit(req, res) {
     return res.redirect(`${clientUrl}/login?error=google_not_configured&message=${encodeURIComponent('Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in server/.env or sign in with email.')}`);
   }
 
-  const callbackUrl = process.env.GOOGLE_CALLBACK_URL || `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  const host = req.get('host');
+  const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+  const proto = isLocal ? req.protocol : (req.get('x-forwarded-proto') || 'https');
+  const callbackUrl = process.env.GOOGLE_CALLBACK_URL || `${proto}://${host}/api/auth/google/callback`;
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -174,7 +177,10 @@ async function googleAuthCallback(req, res, next) {
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const callbackUrl = process.env.GOOGLE_CALLBACK_URL || `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+  const host = req.get('host');
+  const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+  const proto = isLocal ? req.protocol : (req.get('x-forwarded-proto') || 'https');
+  const callbackUrl = process.env.GOOGLE_CALLBACK_URL || `${proto}://${host}/api/auth/google/callback`;
 
   try {
     // 1. Exchange authorization code for access token

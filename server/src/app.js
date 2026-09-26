@@ -27,6 +27,9 @@ const feedbackRoutes = require('./routes/feedback.routes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust reverse proxies (Render, Vercel, AWS)
+app.set('trust proxy', 1);
+
 // Security & Parsing Middlewares
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
