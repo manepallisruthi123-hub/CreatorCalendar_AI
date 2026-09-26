@@ -5,7 +5,11 @@ export function GoogleButton({ onClick, className = '', disabled = false, text =
     if (onClick) {
       onClick(e);
     } else {
-      window.location.href = '/api/auth/google';
+      const rawApiUrl = import.meta.env?.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/+$/, '') : '';
+      const authUrl = rawApiUrl
+        ? (rawApiUrl.endsWith('/api') ? `${rawApiUrl}/auth/google` : `${rawApiUrl}/api/auth/google`)
+        : '/api/auth/google';
+      window.location.href = authUrl;
     }
   };
 
