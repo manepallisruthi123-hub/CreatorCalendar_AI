@@ -7,7 +7,13 @@
     "start": "node src/app.js",
     "dev": "node --watch src/app.js"
   },
-  "keywords": ["creator", "calendar", "ai", "instagram", "content-strategy"],
+  "keywords": [
+    "creator",
+    "calendar",
+    "ai",
+    "instagram",
+    "content-strategy"
+  ],
   "author": "CreatorCalendar AI",
   "license": "ISC",
   "type": "commonjs",
@@ -15,6 +21,7 @@
     "@electric-sql/pglite": "^0.5.8",
     "@google/genai": "^2.24.0",
     "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^18.0.4",
     "express": "^5.2.1",

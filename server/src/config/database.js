@@ -65,18 +65,25 @@ async function query(text, params = []) {
 async function initDb() {
   const db = await getDatabase();
   try {
-    const migrationPath = path.join(__dirname, '../db/migrations/001_initial_schema.sql');
-    if (fs.existsSync(migrationPath)) {
-      const sql = fs.readFileSync(migrationPath, 'utf8');
-      if (isPgPool) {
-        await db.query(sql);
-      } else {
-        await db.exec(sql);
+    const migrationsDir = path.join(__dirname, '../db/migrations');
+    if (fs.existsSync(migrationsDir)) {
+      const files = fs.readdirSync(migrationsDir)
+        .filter(f => f.endsWith('.sql'))
+        .sort();
+
+      for (const file of files) {
+        const filePath = path.join(migrationsDir, file);
+        const sql = fs.readFileSync(filePath, 'utf8');
+        if (isPgPool) {
+          await db.query(sql);
+        } else {
+          await db.exec(sql);
+        }
+        console.log(`✅ Migration applied: ${file}`);
       }
-      console.log('✅ Database schema initialized successfully');
     }
   } catch (error) {
-    console.error('❌ Failed to run initial schema migration:', error);
+    console.error('❌ Failed to run database migrations:', error);
     throw error;
   }
 }

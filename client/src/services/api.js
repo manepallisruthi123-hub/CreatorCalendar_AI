@@ -21,6 +21,7 @@ async function request(endpoint, options = {}) {
   };
 
   const config = {
+    credentials: 'include',
     ...options,
     headers,
   };

@@ -14,9 +14,19 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
+import { useAuth } from '../context/AuthContext';
 
 export function Landing() {
   const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuth();
+
+  const handleCtaClick = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/register');
+    }
+  };
 
   const workflowSteps = [
     { step: '01', title: 'Analyze', desc: 'Ingest your Instagram profile and recent posts data.' },
@@ -73,13 +83,29 @@ export function Landing() {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
-              Sign In
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => navigate('/register')}>
-              Get Started Free
-            </Button>
+          <div className="flex items-center gap-2.5">
+            {isAuthenticated ? (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
+                  Profile/Settings
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => navigate('/dashboard')}>
+                  Dashboard
+                </Button>
+                <Button variant="ghost" size="sm" className="text-slate-400 hover:text-rose-400" onClick={logout}>
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
+                  Sign In
+                </Button>
+                <Button variant="primary" size="sm" onClick={() => navigate('/register')}>
+                  Get Started Free
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -108,7 +134,7 @@ export function Landing() {
               size="lg"
               variant="primary"
               icon={Sparkles}
-              onClick={() => navigate('/register')}
+              onClick={handleCtaClick}
             >
               Analyze My Profile
             </Button>
@@ -116,9 +142,9 @@ export function Landing() {
               size="lg"
               variant="secondary"
               icon={ArrowRight}
-              onClick={() => navigate('/login')}
+              onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')}
             >
-              View Live Demo
+              {isAuthenticated ? 'Go to Dashboard' : 'View Live Demo'}
             </Button>
           </div>
 
@@ -227,7 +253,7 @@ export function Landing() {
             Connect your profile or import sample data to unlock AI-powered insights and a customized 7-day content plan in minutes.
           </p>
           <div className="mt-6">
-            <Button size="lg" variant="primary" icon={Sparkles} onClick={() => navigate('/register')}>
+            <Button size="lg" variant="primary" icon={Sparkles} onClick={handleCtaClick}>
               Start Analyzing Now
             </Button>
           </div>

@@ -14,18 +14,29 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function checkAuth() {
-    const token = localStorage.getItem('creator_calendar_token');
-    if (!token) {
-      setLoading(false);
-      return;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlToken = urlParams.get('token');
+      if (urlToken) {
+        setToken(urlToken);
+        urlParams.delete('token');
+        const remainingQuery = urlParams.toString();
+        const cleanUrl = window.location.pathname + (remainingQuery ? `?${remainingQuery}` : '') + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    } catch (e) {
+      // Ignore URL parsing errors
     }
 
     try {
       const data = await api.auth.me();
-      setUser(data.user);
-      await loadProfiles();
+      if (data && data.user) {
+        setUser(data.user);
+        await loadProfiles();
+      } else {
+        setUser(null);
+      }
     } catch (err) {
-      console.warn('Auth check failed, clearing token:', err.message);
       setToken(null);
       setUser(null);
     } finally {
@@ -67,8 +78,8 @@ export function AuthProvider({ children }) {
     return data;
   }
 
-  async function register(name, email, password) {
-    const data = await api.auth.register({ name, email, password });
+  async function register(name, email, password, confirmPassword) {
+    const data = await api.auth.register({ name, email, password, confirmPassword });
     setToken(data.token);
     setUser(data.user);
     await loadProfiles();
