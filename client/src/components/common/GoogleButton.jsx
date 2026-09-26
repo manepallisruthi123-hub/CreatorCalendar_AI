@@ -6,9 +6,14 @@ export function GoogleButton({ onClick, className = '', disabled = false, text =
       onClick(e);
     } else {
       const rawApiUrl = import.meta.env?.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/+$/, '') : '';
-      const authUrl = rawApiUrl
-        ? (rawApiUrl.endsWith('/api') ? `${rawApiUrl}/auth/google` : `${rawApiUrl}/api/auth/google`)
-        : '/api/auth/google';
+      let authUrl;
+      if (rawApiUrl) {
+        authUrl = rawApiUrl.endsWith('/api') ? `${rawApiUrl}/auth/google` : `${rawApiUrl}/api/auth/google`;
+      } else if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+        authUrl = 'https://creator-calendar-ai.onrender.com/api/auth/google';
+      } else {
+        authUrl = '/api/auth/google';
+      }
       window.location.href = authUrl;
     }
   };
