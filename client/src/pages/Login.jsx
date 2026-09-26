@@ -8,7 +8,7 @@ import { useToast } from '../components/common/Toast';
 
 export function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const toast = useToast();
 
   const [email, setEmail] = useState('');
@@ -44,7 +44,6 @@ export function Login() {
     } catch (err) {
       // If demo user doesn't exist yet, register it automatically!
       try {
-        const { register } = useAuth();
         await register('Demo Creator', 'demo@creatorcalendar.ai', 'demo123456');
         toast.success('Demo account created and signed in!');
         navigate('/dashboard');
