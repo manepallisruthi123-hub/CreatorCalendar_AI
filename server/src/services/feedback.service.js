@@ -330,7 +330,7 @@ Timezone: ${profile.timezone || 'Asia/Kolkata'}
 Historical Posts Count: ${posts.length}
 
 ${posts.length === 0 ? 'NOTE: The creator has 0 historical posts. You must generate STARTER FEEDBACK without claiming past trends or consistency.' : ''}
-${posts.length === 1 ? `NOTE: Exactly 1 post exists. Evaluate ONLY observable attributes of this single post: "${posts[0].caption?.slice(0, 150)}", Format: ${posts[0].content_type}, CTA: ${posts[0].cta}. Do NOT claim consistency or audience trends.` : ''}
+${posts.length === 1 ? `NOTE: Exactly 1 post exists. Evaluate ONLY observable attributes of this single post: "${posts[0].caption?.slice(0, 150)}", Format: ${posts[0].content_type}, CTA: ${posts[0].cta}. Do NOT claim consistency or audience trends. The summary MUST state that this is an evaluation based on 1 post with limited historical data.` : ''}
 ${posts.length > 1 ? `Sample of available posts: ${JSON.stringify(posts.slice(0, 5).map(p => ({ format: p.content_type, caption: p.caption?.slice(0, 100), cta: p.cta })))}` : ''}
 
 Output strictly conforming to the requested Feedback schema.
@@ -340,6 +340,9 @@ Output strictly conforming to the requested Feedback schema.
         userPrompt,
         schema: feedbackResponseSchema
       });
+      if (posts.length === 1 && !aiResult.summary.toLowerCase().includes('limited') && !aiResult.summary.includes('1')) {
+        aiResult.summary = `Evaluation based on 1 verified post (limited historical data): ${aiResult.summary}`;
+      }
       feedback = aiResult;
     } catch (err) {
       console.warn('Gemini feedback generation fallback to intelligent heuristics:', err.message);
