@@ -141,8 +141,18 @@ async function getCurrentUser(req, res, next) {
   }
 }
 
+function getClientUrl() {
+  return (
+    process.env.CLIENT_URL ||
+    process.env.FRONTEND_URL ||
+    (process.env.NODE_ENV === 'production'
+      ? 'https://creator-calendar-ai.vercel.app'
+      : 'http://localhost:5173')
+  );
+}
+
 async function googleAuthInit(req, res) {
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const clientUrl = getClientUrl();
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -168,7 +178,7 @@ async function googleAuthInit(req, res) {
 }
 
 async function googleAuthCallback(req, res, next) {
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const clientUrl = getClientUrl();
   const { code, error } = req.query;
 
   if (error || !code) {
