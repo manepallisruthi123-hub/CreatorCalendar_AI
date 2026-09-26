@@ -17,6 +17,7 @@ import { ProfileAnalysis } from './pages/ProfileAnalysis';
 import { Ideas } from './pages/Ideas';
 import { Calendar } from './pages/Calendar';
 import { Posts } from './pages/Posts';
+import { PostImport } from './pages/PostImport';
 import { PostDetails } from './pages/PostDetails';
 import { Campaigns } from './pages/Campaigns';
 import { Settings } from './pages/Settings';
@@ -49,6 +50,7 @@ export function App() {
               <Route path="/ideas" element={<Ideas />} />
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/posts" element={<Posts />} />
+              <Route path="/posts/import" element={<PostImport />} />
               <Route path="/posts/:id" element={<PostDetails />} />
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/settings" element={<Settings />} />

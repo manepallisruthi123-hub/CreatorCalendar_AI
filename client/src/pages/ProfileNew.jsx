@@ -49,8 +49,8 @@ export function ProfileNew() {
       toast.success('Social profile created successfully!');
       await refreshProfiles();
       selectProfile(res.profile);
-      // Navigate to profile details to add posts or auto-seed
-      navigate(`/profiles/${res.profile.id}`);
+      // Navigate to post import flow as requested by specification
+      navigate('/posts/import');
     } catch (err) {
       setError(err.message || 'Failed to create profile');
     } finally {

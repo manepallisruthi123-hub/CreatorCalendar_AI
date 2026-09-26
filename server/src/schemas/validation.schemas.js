@@ -31,14 +31,52 @@ const updateSocialProfileSchema = socialProfileSchema.partial();
 const profilePostSchema = z.object({
   post_date: z.string().optional().nullable(),
   platform: z.string().default('Instagram'),
-  content_type: z.string().min(1, 'Content type is required'), // Reel, Carousel, Story, Static Post
+  content_type: z.string().min(1, 'Content type is required'), // Reel, Carousel, Story, Image, Static Post
   caption: z.string().optional().default(''),
-  hashtags: z.array(z.string()).optional().default([]),
-  likes: z.number().int().nonnegative().optional().default(0),
-  comments: z.number().int().nonnegative().optional().default(0),
-  views: z.number().int().nonnegative().optional().default(0),
-  reach: z.number().int().nonnegative().optional().default(0),
-  engagement_rate: z.number().nonnegative().optional().default(0)
+  hashtags: z.union([z.array(z.string()), z.string()]).optional().default([]),
+  likes: z.coerce.number().int().nonnegative().optional().default(0),
+  comments: z.coerce.number().int().nonnegative().optional().default(0),
+  views: z.coerce.number().int().nonnegative().optional().default(0),
+  reach: z.coerce.number().int().nonnegative().optional().default(0),
+  engagement_rate: z.coerce.number().nonnegative().optional().default(0),
+  cta: z.string().optional().default(''),
+  is_demo: z.boolean().optional().default(false)
+});
+
+const strengthItemSchema = z.union([
+  z.object({
+    title: z.string(),
+    description: z.string().optional().default(''),
+    evidence: z.string().optional().default('')
+  }),
+  z.string().transform(str => ({ title: str, description: str, evidence: 'Identified in profile analysis' }))
+]);
+
+const weaknessItemSchema = z.union([
+  z.object({
+    title: z.string(),
+    description: z.string().optional().default(''),
+    evidence: z.string().optional().default('')
+  }),
+  z.string().transform(str => ({ title: str, description: str, evidence: 'Identified in profile analysis' }))
+]);
+
+const opportunityItemSchema = z.union([
+  z.object({
+    title: z.string(),
+    description: z.string().optional().default(''),
+    action: z.string().optional().default('Implement recommended content strategy'),
+    priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).or(z.string()).optional().default('MEDIUM')
+  }),
+  z.string().transform(str => ({ title: str, description: str, action: 'Implement recommended content strategy', priority: 'MEDIUM' }))
+]);
+
+const postingWindowItemSchema = z.object({
+  day: z.string(),
+  start: z.string(),
+  end: z.string(),
+  confidence: z.enum(['HIGH', 'MEDIUM', 'LOW']).or(z.string()).optional().default('MEDIUM'),
+  reason: z.string().optional().default('Suggested window based on audience behavior')
 });
 
 // AI Profile Analysis schema (matching Section 20)
@@ -50,51 +88,36 @@ const profileAnalysisSchema = z.object({
   }),
   content_mix: z.array(z.object({
     content_type: z.string(),
-    percentage: z.number()
+    percentage: z.coerce.number()
   })),
   content_themes: z.array(z.object({
     theme: z.string(),
-    percentage: z.number()
-  })),
+    percentage: z.coerce.number()
+  })).optional().default([]),
   consistency: z.object({
-    indicator: z.number(),
-    explanation: z.string()
+    indicator: z.coerce.number(),
+    explanation: z.string().optional().default('')
   }),
   content_variety: z.object({
-    indicator: z.number(),
-    explanation: z.string()
+    indicator: z.coerce.number(),
+    explanation: z.string().optional().default('')
   }),
   caption_quality: z.object({
-    indicator: z.number(),
-    explanation: z.string()
+    indicator: z.coerce.number(),
+    explanation: z.string().optional().default('')
   }),
   cta_usage: z.object({
-    indicator: z.number(),
-    explanation: z.string()
+    indicator: z.coerce.number(),
+    explanation: z.string().optional().default('')
   }),
-  strengths: z.array(z.object({
-    title: z.string(),
-    description: z.string(),
-    evidence: z.string()
-  })),
-  weaknesses: z.array(z.object({
-    title: z.string(),
-    description: z.string(),
-    evidence: z.string()
-  })),
-  opportunities: z.array(z.object({
-    title: z.string(),
-    description: z.string(),
-    action: z.string(),
-    priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).or(z.string())
-  })),
-  posting_windows: z.array(z.object({
-    day: z.string(),
-    start: z.string(),
-    end: z.string(),
-    confidence: z.enum(['HIGH', 'MEDIUM', 'LOW']).or(z.string()),
-    reason: z.string()
-  }))
+  strengths: z.array(strengthItemSchema).optional().default([]),
+  weaknesses: z.array(weaknessItemSchema).optional().default([]),
+  opportunities: z.array(opportunityItemSchema).optional().default([]),
+  posting_windows: z.array(postingWindowItemSchema).optional().default([
+    { day: 'Tuesday', start: '18:00', end: '20:00', confidence: 'MEDIUM', reason: 'High evening engagement window' },
+    { day: 'Thursday', start: '12:00', end: '14:00', confidence: 'MEDIUM', reason: 'Midday browse session' },
+    { day: 'Sunday', start: '19:00', end: '21:00', confidence: 'HIGH', reason: 'Weekly planning and educational reading' }
+  ])
 });
 
 // Recommendation schema

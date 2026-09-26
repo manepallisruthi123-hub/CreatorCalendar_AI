@@ -175,11 +175,18 @@ async function createProfilePost(req, res, next) {
 
     const postDate = validated.post_date ? new Date(validated.post_date) : new Date();
 
+    let hashtagsArr = [];
+    if (Array.isArray(validated.hashtags)) {
+      hashtagsArr = validated.hashtags;
+    } else if (typeof validated.hashtags === 'string') {
+      hashtagsArr = validated.hashtags.split(/[\s,]+/).filter(Boolean).map(t => t.startsWith('#') ? t : `#${t}`);
+    }
+
     const insertRes = await query(`
       INSERT INTO profile_posts (
         profile_id, user_id, post_date, platform, content_type,
-        caption, hashtags, likes, comments, views, reach, engagement_rate
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        caption, hashtags, likes, comments, views, reach, engagement_rate, cta, is_demo
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *;
     `, [
       profileId,
@@ -188,12 +195,14 @@ async function createProfilePost(req, res, next) {
       validated.platform || profileCheck.rows[0].platform || 'Instagram',
       validated.content_type,
       validated.caption,
-      JSON.stringify(validated.hashtags || []),
+      JSON.stringify(hashtagsArr),
       validated.likes || 0,
       validated.comments || 0,
       validated.views || 0,
       validated.reach || 0,
-      validated.engagement_rate || 0
+      validated.engagement_rate || 0,
+      validated.cta || '',
+      Boolean(validated.is_demo)
     ]);
 
     res.status(201).json({
@@ -228,11 +237,18 @@ async function batchImportPosts(req, res, next) {
       const validated = profilePostSchema.parse(postData);
       const postDate = validated.post_date ? new Date(validated.post_date) : new Date();
 
+      let hashtagsArr = [];
+      if (Array.isArray(validated.hashtags)) {
+        hashtagsArr = validated.hashtags;
+      } else if (typeof validated.hashtags === 'string') {
+        hashtagsArr = validated.hashtags.split(/[\s,]+/).filter(Boolean).map(t => t.startsWith('#') ? t : `#${t}`);
+      }
+
       const insertRes = await query(`
         INSERT INTO profile_posts (
           profile_id, user_id, post_date, platform, content_type,
-          caption, hashtags, likes, comments, views, reach, engagement_rate
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          caption, hashtags, likes, comments, views, reach, engagement_rate, cta, is_demo
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING *;
       `, [
         profileId,
@@ -241,12 +257,14 @@ async function batchImportPosts(req, res, next) {
         validated.platform || 'Instagram',
         validated.content_type,
         validated.caption,
-        JSON.stringify(validated.hashtags || []),
+        JSON.stringify(hashtagsArr),
         validated.likes || 0,
         validated.comments || 0,
         validated.views || 0,
         validated.reach || 0,
-        validated.engagement_rate || 0
+        validated.engagement_rate || 0,
+        validated.cta || '',
+        Boolean(validated.is_demo)
       ]);
       inserted.push(insertRes.rows[0]);
     }
@@ -272,19 +290,20 @@ async function seedSamplePosts(req, res, next) {
     }
 
     const profile = profileCheck.rows[0];
-    const niche = profile.niche || 'Technology';
 
-    // 10 realistic posts matching the demo specification
+    // 10 realistic posts with full metadata, explicit CTAs, and marked clearly as demo data
     const samplePosts = [
       {
         content_type: 'Carousel',
-        caption: '5 fundamental clean architecture principles every developer should memorize. 1. Single Responsibility 2. Inversion of Control 3. Strict Boundary Isolation 4. Clear DTOs 5. Parameterized Queries. Save for later!',
+        caption: '5 fundamental clean architecture principles every developer should memorize. 1. Single Responsibility 2. Inversion of Control 3. Strict Boundary Isolation 4. Clear DTOs 5. Parameterized Queries.',
         hashtags: ['#CleanArchitecture', '#CodingTips', '#TechEducation', '#SoftwareEngineering'],
         likes: 245,
         comments: 18,
         views: 3100,
         reach: 2800,
         engagement_rate: 8.4,
+        cta: 'Save this guide to review before your next sprint',
+        is_demo: true,
         post_date: new Date(Date.now() - 1 * 86400000).toISOString()
       },
       {
@@ -296,6 +315,8 @@ async function seedSamplePosts(req, res, next) {
         views: 2400,
         reach: 2100,
         engagement_rate: 7.8,
+        cta: 'Bookmark and share with your dev team',
+        is_demo: true,
         post_date: new Date(Date.now() - 3 * 86400000).toISOString()
       },
       {
@@ -307,6 +328,8 @@ async function seedSamplePosts(req, res, next) {
         views: 4200,
         reach: 3800,
         engagement_rate: 8.9,
+        cta: 'Comment POSTGRES for our indexing cheatsheet',
+        is_demo: true,
         post_date: new Date(Date.now() - 5 * 86400000).toISOString()
       },
       {
@@ -318,6 +341,8 @@ async function seedSamplePosts(req, res, next) {
         views: 5600,
         reach: 5100,
         engagement_rate: 8.9,
+        cta: 'Save for your career planning session',
+        is_demo: true,
         post_date: new Date(Date.now() - 7 * 86400000).toISOString()
       },
       {
@@ -329,6 +354,8 @@ async function seedSamplePosts(req, res, next) {
         views: 8900,
         reach: 7500,
         engagement_rate: 8.2,
+        cta: 'Tag a teammate who has pushed broken code on Friday',
+        is_demo: true,
         post_date: new Date(Date.now() - 9 * 86400000).toISOString()
       },
       {
@@ -340,17 +367,21 @@ async function seedSamplePosts(req, res, next) {
         views: 2800,
         reach: 2500,
         engagement_rate: 9.1,
+        cta: 'Comment AUTH for the complete security checklist',
+        is_demo: true,
         post_date: new Date(Date.now() - 11 * 86400000).toISOString()
       },
       {
         content_type: 'Carousel',
-        caption: 'Essential Git commands that beyond push and pull. git bisect, git cherry-pick, and rebase interactive walkthrough.',
+        caption: 'Essential Git commands beyond push and pull. git bisect, git cherry-pick, and rebase interactive walkthrough.',
         hashtags: ['#GitTips', '#VersionControl', '#DevTools'],
         likes: 198,
         comments: 8,
         views: 2300,
         reach: 2000,
         engagement_rate: 10.3,
+        cta: 'Share with a colleague learning Git',
+        is_demo: true,
         post_date: new Date(Date.now() - 13 * 86400000).toISOString()
       },
       {
@@ -362,6 +393,8 @@ async function seedSamplePosts(req, res, next) {
         views: 1200,
         reach: 1100,
         engagement_rate: 11.8,
+        cta: 'Tap to vote in today\'s community poll',
+        is_demo: true,
         post_date: new Date(Date.now() - 15 * 86400000).toISOString()
       },
       {
@@ -373,10 +406,12 @@ async function seedSamplePosts(req, res, next) {
         views: 3900,
         reach: 3400,
         engagement_rate: 9.1,
+        cta: 'Save this breakdown for technical interviews',
+        is_demo: true,
         post_date: new Date(Date.now() - 17 * 86400000).toISOString()
       },
       {
-        content_type: 'Static Post',
+        content_type: 'Image',
         caption: 'Reminder: You do not need to learn every new framework that drops on Twitter. Master one strong stack deeply.',
         hashtags: ['#DeveloperMindset', '#Focus', '#TechWisdom'],
         likes: 340,
@@ -384,6 +419,8 @@ async function seedSamplePosts(req, res, next) {
         views: 3700,
         reach: 3300,
         engagement_rate: 10.8,
+        cta: 'Double tap if you needed this reminder today',
+        is_demo: true,
         post_date: new Date(Date.now() - 19 * 86400000).toISOString()
       }
     ];
@@ -393,8 +430,8 @@ async function seedSamplePosts(req, res, next) {
       const res = await query(`
         INSERT INTO profile_posts (
           profile_id, user_id, post_date, platform, content_type,
-          caption, hashtags, likes, comments, views, reach, engagement_rate
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          caption, hashtags, likes, comments, views, reach, engagement_rate, cta, is_demo
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING *;
       `, [
         profileId,
@@ -408,13 +445,16 @@ async function seedSamplePosts(req, res, next) {
         postData.comments,
         postData.views,
         postData.reach,
-        postData.engagement_rate
+        postData.engagement_rate,
+        postData.cta,
+        true
       ]);
       inserted.push(res.rows[0]);
     }
 
     res.status(201).json({
       message: '10 realistic sample posts loaded successfully',
+      count: inserted.length,
       posts: inserted
     });
   } catch (err) {

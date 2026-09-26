@@ -10,7 +10,8 @@ import {
   Target,
   Settings,
   Sparkles,
-  LogOut
+  LogOut,
+  Upload
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -20,6 +21,7 @@ export function Sidebar({ className = '' }) {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Profiles', path: '/profiles', icon: Users },
+    { name: 'Import Content', path: '/posts/import', icon: Upload },
     { name: 'Analysis', path: '/analyze', icon: LineChart },
     { name: 'Creative Ideas', path: '/ideas', icon: Lightbulb },
     { name: 'Calendar', path: '/calendar', icon: Calendar },

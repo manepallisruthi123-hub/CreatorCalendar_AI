@@ -228,9 +228,34 @@ async function analyzeProfile(profileId, userId) {
   );
   const posts = postsRes.rows;
 
+  // Calculate verified deterministic metrics
+  const totalPosts = posts.length;
+  const formatCounts = {};
+  let totalLikes = 0;
+  let totalComments = 0;
+  let ctaCount = 0;
+
+  posts.forEach(p => {
+    const fmt = p.content_type || 'Image';
+    formatCounts[fmt] = (formatCounts[fmt] || 0) + 1;
+    totalLikes += (p.likes || 0);
+    totalComments += (p.comments || 0);
+    if (p.cta && p.cta.trim().length > 0) ctaCount++;
+  });
+
+  const contentMix = Object.entries(formatCounts).map(([fmt, cnt]) => ({
+    content_type: fmt,
+    count: cnt,
+    percentage: totalPosts > 0 ? Math.round((cnt / totalPosts) * 100) : 0
+  }));
+
+  const avgLikes = totalPosts > 0 ? Math.round(totalLikes / totalPosts) : 0;
+  const avgComments = totalPosts > 0 ? Math.round(totalComments / totalPosts) : 0;
+  const ctaScore = totalPosts > 0 ? Math.round((ctaCount / totalPosts) * 100) : 0;
+
   let analysisData;
 
-  // 3. Run Gemini analysis or Fallback
+  // 3. Run Gemini analysis or Heuristic fallback
   if (isGeminiConfigured()) {
     try {
       const userPrompt = `
@@ -244,19 +269,29 @@ Content Goal: ${profile.content_goal || 'Growth & Engagement'}
 Tone: ${profile.preferred_tone || 'Friendly & Professional'}
 Timezone: ${profile.timezone || 'UTC'}
 
-Recent Posts Data (${posts.length} posts):
+Verified Deterministic Metrics (Calculated by Backend - DO NOT INVENT OR CONTRADICT):
+- Total Posts Analyzed: ${totalPosts}
+- Content Mix: ${JSON.stringify(contentMix)}
+- Average Likes per Post: ${avgLikes}
+- Average Comments per Post: ${avgComments}
+- Calls-to-Action (CTA) Usage Rate: ${ctaScore}%
+
+Stored Recent Posts Data (${posts.length} posts):
 ${JSON.stringify(posts.map(p => ({
   date: p.post_date,
-  type: p.content_type,
+  content_type: p.content_type,
   caption: p.caption,
   hashtags: p.hashtags,
-  likes: p.likes,
-  comments: p.comments,
-  views: p.views,
-  reach: p.reach
+  cta: p.cta || '',
+  likes: p.likes || 0,
+  comments: p.comments || 0,
+  is_demo: Boolean(p.is_demo)
 })), null, 2)}
 
-Provide a rigorous, deep profile analysis matching the required JSON schema.
+CRITICAL INSTRUCTIONS:
+- You are strictly prohibited from fabricating or inventing follower counts, reach numbers, impressions, or metrics not provided above.
+- Base your strengths, weaknesses, and opportunities exclusively on the supplied profile information, post captions, content mix, and deterministic metrics.
+- Return structured JSON strictly conforming to the schema.
 `;
       analysisData = await callGeminiStructured({
         systemPrompt: SYSTEM_ANALYSIS_PROMPT,

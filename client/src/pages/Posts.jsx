@@ -115,26 +115,37 @@ export function Posts() {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          size="sm"
-          icon={Plus}
-          onClick={() => {
-            setEditingPost({
-              profile_id: activeProfile.id,
-              scheduled_date: new Date().toISOString().split('T')[0],
-              topic: '',
-              hook: '',
-              caption: '',
-              content_type: 'Reel',
-              status: 'DRAFT',
-              suggested_time: '19:00',
-              cta: ''
-            });
-          }}
-        >
-          Create Post
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={Upload}
+            onClick={() => navigate('/posts/import')}
+          >
+            Import Past Posts
+          </Button>
+
+          <Button
+            variant="primary"
+            size="sm"
+            icon={Plus}
+            onClick={() => {
+              setEditingPost({
+                profile_id: activeProfile.id,
+                scheduled_date: new Date().toISOString().split('T')[0],
+                topic: '',
+                hook: '',
+                caption: '',
+                content_type: 'Reel',
+                status: 'DRAFT',
+                suggested_time: '19:00',
+                cta: ''
+              });
+            }}
+          >
+            Create Post
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters Bar */}
