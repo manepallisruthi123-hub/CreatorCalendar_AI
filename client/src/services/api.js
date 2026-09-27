@@ -53,6 +53,12 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
+  request,
+  get: (url, options = {}) => request(url, { method: 'GET', ...options }),
+  post: (url, body, options = {}) => request(url, { method: 'POST', body, ...options }),
+  patch: (url, body, options = {}) => request(url, { method: 'PATCH', body, ...options }),
+  delete: (url, options = {}) => request(url, { method: 'DELETE', ...options }),
+
   // Auth
   auth: {
     register: (userData) => request('/auth/register', { method: 'POST', body: userData }),

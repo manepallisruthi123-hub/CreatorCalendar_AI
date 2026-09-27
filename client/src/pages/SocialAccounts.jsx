@@ -33,9 +33,10 @@ export function SocialAccounts() {
     try {
       setLoading(true);
       const res = await api.get('/social/accounts');
-      setPlatforms(res.data.platforms || []);
+      const data = res?.data || res;
+      setPlatforms(data.platforms || []);
     } catch (err) {
-      addToast(err.response?.data?.message || 'Failed to load social accounts status', 'error');
+      addToast(err.response?.data?.message || err.message || 'Failed to load social accounts status', 'error');
     } finally {
       setLoading(false);
     }
@@ -51,16 +52,17 @@ export function SocialAccounts() {
       const res = await api.post(`/social/connect/${platformKey}`, {
         redirectUri: window.location.origin + '/accounts'
       });
+      const data = res?.data || res;
 
-      if (res.data.status === 'OAUTH_REDIRECT' && res.data.authUrl) {
-        window.location.href = res.data.authUrl;
+      if (data.status === 'OAUTH_REDIRECT' && data.authUrl) {
+        window.location.href = data.authUrl;
         return;
       }
 
-      if (res.data.status === 'CONNECTED') {
-        addToast(res.data.message || `Connected to ${platformKey} successfully!`, 'success');
+      if (data.status === 'CONNECTED') {
+        addToast(data.message || `Connected to ${platformKey} successfully!`, 'success');
         await fetchAccounts();
-      } else if (res.data.status === 'NOT_CONFIGURED') {
+      } else if (data.status === 'NOT_CONFIGURED') {
         // Open quick sandbox/demo connection modal so user can test seamlessly
         setDemoModalPlatform(platformKey);
         setDemoUsername(`${platformKey}_creator`);
@@ -91,11 +93,12 @@ export function SocialAccounts() {
         displayName: demoDisplayName,
         profileUrl: `https://${demoModalPlatform}.com/${demoUsername}`
       });
-      addToast(res.data.message || `${demoModalPlatform} connected (Sandbox mode)`, 'success');
+      const data = res?.data || res;
+      addToast(data.message || `${demoModalPlatform} connected (Sandbox mode)`, 'success');
       setDemoModalPlatform(null);
       await fetchAccounts();
     } catch (err) {
-      addToast(err.response?.data?.message || 'Failed to connect in sandbox mode', 'error');
+      addToast(err.response?.data?.message || err.message || 'Failed to connect in sandbox mode', 'error');
     } finally {
       setActionLoading(prev => ({ ...prev, [demoModalPlatform]: false }));
     }
@@ -106,10 +109,11 @@ export function SocialAccounts() {
     try {
       setActionLoading(prev => ({ ...prev, [platformKey]: true }));
       const res = await api.post(`/social/disconnect/${platformKey}`);
-      addToast(res.data.message || 'Account disconnected', 'info');
+      const data = res?.data || res;
+      addToast(data.message || 'Account disconnected', 'info');
       await fetchAccounts();
     } catch (err) {
-      addToast(err.response?.data?.message || 'Failed to disconnect account', 'error');
+      addToast(err.response?.data?.message || err.message || 'Failed to disconnect account', 'error');
     } finally {
       setActionLoading(prev => ({ ...prev, [platformKey]: false }));
     }
